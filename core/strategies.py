@@ -10,8 +10,11 @@ import pandas as pd
 import datetime as dt
 import threading
 import json
+import sys
+import os
 
-from .libraries.pub_sub import Publisher, Subscriber
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from core.libraries.pub_sub import Publisher, Subscriber
 
 
 class Strategy(Subscriber):

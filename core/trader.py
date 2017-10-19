@@ -8,8 +8,11 @@ Created on Thu Aug 10 09:36:39 2017
 import requests
 import json
 import threading
+import sys
+import os
 
-from .libraries.pub_sub import Publisher, Subscriber
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from core.libraries.pub_sub import Publisher, Subscriber
 
 class Trader(Subscriber):
     """

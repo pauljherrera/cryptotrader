@@ -12,8 +12,8 @@ from core.libraries.websocket_thread import ConnectThread
 
 if __name__ == "__main__":
 	# Variables.
-    key = "67a4cf6b2800fb2a177693a61bff2b1a"
-    secret = "8f756b95e898a8e42bbed7b0abb858d5"
+    key = "5d69efe677adf65c82ab8fd65477737a"
+    secret = "cb83efff6c3b2d75e27db699f2d50349"
     auth_id = 1111
     channels=[
         'TRADE-PLNX--USDT--BTC',
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # Initializing websocket.
     ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
     connnectThread = ConnectThread(ws)
-    connnectThread.setDaemon(True)
+    connnectThread.setDaemon(False)
 
     # Setting strategy and subscriptions.
     strategy = strategies.MACrossover(5, 20, 10)

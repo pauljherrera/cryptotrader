@@ -7,11 +7,15 @@ Created on Wed Jul 26 20:54:30 2017
 
 import logging
 import json
-from socketclusterclient import Socketcluster
-from .libraries.pub_sub import Publisher, Subscriber
-from .libraries.websocket_thread import ConnectThread
+import sys
+import os
 
-from .libraries.channels import channels as ch
+from socketclusterclient import Socketcluster
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from core.libraries.pub_sub import Publisher, Subscriber
+from core.libraries.websocket_thread import ConnectThread
+from core.libraries.channels import channels as ch
 # Custom libraries.
 # from libraries.common import PubSubPattern
 
@@ -91,6 +95,7 @@ class CoinigyWebsocket():
             self.socket.subscribe(channelName)
 
     def onChannelMessage(self,event, message):
+        print(message)
         self.pub.dispatch(event, message)
 
         
@@ -100,35 +105,20 @@ class CoinigyWebsocket():
     
 if __name__ == "__main__":
     # Variables.
-    key = "67a4cf6b2800fb2a177693a61bff2b1a"
-    secret = "8f756b95e898a8e42bbed7b0abb858d5"
+    key = "5d69efe677adf65c82ab8fd65477737a"
+    secret = "cb83efff6c3b2d75e27db699f2d50349"
     channels=[
-        'TRADE-BTCE--BTC--USD', 
-        'TRADE-OK--BTC--CNY',
-        'TRADE-BITF--BTC--USD',
-        'TRADE-GDAX--BTC--USD',
-        'TRADE-PLNX--USDT--BTC',
-        'TRADE-BTRX--BTC--USDT',
-        'TRADE-HUOB--BTC--CNY',
+        'ORDER-GDAX--BTC--USD',
+        'ORDER-PLNX--USDT--BTC',
+        'ORDER-BTRX--BTC--USDT',
     ]
 
-    channels = ch
+    #channels = ch
     
-    # pub = Publisher(channels)
-    # channel1 = Subscriber('channel1')
-    # channel2 = Subscriber('channel2')
-    # channel3 = Subscriber('channel3')
 
-    # pub.register("TRADE-BTCE--BTC--USD", channel1)
-    # pub.register("TRADE-BTRX--BTC--USDT", channel2)
-    # pub.register("TRADE-BTCE--BTC--USD", channel3)
-    # pub.register("TRADE-BTRX--BTC--USDT", channel3)
-
-    # pub.dispatch("TRADE-BTCE--BTC--USD", "It's USD!")
-    # pub.dispatch("TRADE-BTRX--BTC--USDT", "Its USDT")
     # Connecting to websocket.
-    ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
+    ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=True)
     connnectThread = ConnectThread(ws)
     connnectThread.setDaemon(True)
     connnectThread.start()
-    x=input("Press any key to exit")
+    x=input()
