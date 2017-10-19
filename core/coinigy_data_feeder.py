@@ -91,9 +91,12 @@ class CoinigyWebsocket():
     
     def ack(self, eventname, error, data):
         for channelName,channel in self.pub.get_events().items():
-            print("Subscribing to channel: {}".format(channelName)) 
-            self.socket.subscribe(channelName)
-
+            self.socket.subscribeack(channelName, self.subscribeack)
+            
+    def subscribeack(self, channel, error, data):
+        if error is '':
+            print("Subscribed successfully to channel " + channel)
+        
     def onChannelMessage(self,event, message):
         print(message)
         self.pub.dispatch(event, message)
@@ -108,9 +111,9 @@ if __name__ == "__main__":
     key = "5d69efe677adf65c82ab8fd65477737a"
     secret = "cb83efff6c3b2d75e27db699f2d50349"
     channels=[
-        'ORDER-GDAX--BTC--USD',
-        'ORDER-PLNX--USDT--BTC',
-        'ORDER-BTRX--BTC--USDT',
+        'TRADE-GDAX--BTC--USD',
+        'TRADE-PLNX--USDT--BTC',
+        'TRADE-BTRX--BTC--USDT',
     ]
 
     #channels = ch
@@ -122,3 +125,4 @@ if __name__ == "__main__":
     connnectThread.setDaemon(True)
     connnectThread.start()
     x=input()
+    
