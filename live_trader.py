@@ -18,17 +18,30 @@ if __name__ == "__main__":
     channels=[
         'TRADE-PLNX--USDT--BTC',
     ]
-
+    #needs ui
+    timeframe = "5"
+    value = {
+        "exchange_code":"GDAX",
+        "exchange_market":"BTC/USD",
+        "type":"history"}
+    header = {
+        "Content-Type":"application/json",
+        "X-API-KEY":"5d69efe677adf65c82ab8fd65477737a",
+        "X-API-SECRET":"cb83efff6c3b2d75e27db699f2d50349"}
+    data = {
+            'values':value,
+            'headers':header,
+            'timef':timeframe + "S"}
     # Initializing websocket.
     ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
     connnectThread = ConnectThread(ws)
     connnectThread.setDaemon(False)
 
     # Setting strategy and subscriptions.
-    strategy = strategies.MACrossover(5, 20, 10)
+    strategy = strategies.MACrossover(5, 20, 10,**data)
     for c in channels:
     	ws.pub.register(c, strategy)
-        
+
     # Setting trader and subscriptions.
     trader = trader.Trader(key, secret, auth_id=auth_id)
     strategy.pub.register('signals', trader)

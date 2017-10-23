@@ -28,12 +28,12 @@ class CoinigyWebsocket():
         # Disabbling logging.
         logger = logging.getLogger()
         logger.disabled = True
-        
+
         # API credentials.
         self.api_credentials = json.loads('{}')
         self.api_credentials["apiKey"] = key
         self.api_credentials["apiSecret"] = secret
-        
+
         # Socket parameters.
         self.socket = Socketcluster.socket("wss://sc-02.coinigy.com/socketcluster/")
         self.socket.setreconnection(reconnect)
@@ -45,13 +45,13 @@ class CoinigyWebsocket():
             channel.pub = Publisher(events=['incoming_data'])
             self.pub.register(c, channel)
             self.socket.onchannel(c, self.onChannelMessage)
-        
+
         # Connecting to socket.
-        self.socket.setBasicListener(self.onconnect, self.ondisconnect, 
+        self.socket.setBasicListener(self.onconnect, self.ondisconnect,
                                      self.onConnectError)
-        self.socket.setAuthenticationListener(self.onSetAuthentication, 
+        self.socket.setAuthenticationListener(self.onSetAuthentication,
                                               self.onAuthentication)
-    
+
     def getChannels(self):
         channels= []
         for subscriber, callback in self.pub.get_subscribers().items():
@@ -70,42 +70,42 @@ class CoinigyWebsocket():
 
     def connect(self):
         self.socket.connect()
-    
+
     def onconnect(self, socket):
-        print('Connecting to websocket')     
-    
+        print('Connecting to websocket')
+
     def ondisconnect(self, socket):
         pass
-    
+
     def onConnectError(self, socket, error):
         logging.info("On connect error got called")
-    
+
     def onSetAuthentication(self, socket, token):
         logging.info("Token received " + token)
         socket.setAuthtoken(token)
-    
+
     def onAuthentication(self, socket, isauthenticated):
-        print('Authenticating user')     
+        print('Authenticating user')
         logging.info("Authenticated is " + str(isauthenticated))
         socket.emitack("auth", self.api_credentials, self.ack)
-    
+
     def ack(self, eventname, error, data):
         for channelName,channel in self.pub.get_events().items():
             self.socket.subscribeack(channelName, self.subscribeack)
-            
+
     def subscribeack(self, channel, error, data):
         if error is '':
             print("Subscribed successfully to channel " + channel)
-        
+
     def onChannelMessage(self,event, message):
         print(message)
         self.pub.dispatch(event, message)
 
-        
+
     def print_message(self, key, error, message):
         print(message)
-    
-    
+
+
 if __name__ == "__main__":
     # Variables.
     key = "5d69efe677adf65c82ab8fd65477737a"
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     ]
 
     #channels = ch
-    
+
 
     # Connecting to websocket.
     ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=True)
@@ -125,4 +125,3 @@ if __name__ == "__main__":
     connnectThread.setDaemon(True)
     connnectThread.start()
     x=input()
-    
