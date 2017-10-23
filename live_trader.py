@@ -16,10 +16,10 @@ if __name__ == "__main__":
     secret = "cb83efff6c3b2d75e27db699f2d50349"
     auth_id = 1111
     channels=[
-        'TRADE-PLNX--USDT--BTC',
+        'TRADE-GDAX--BTC--USD',
     ]
     #needs ui
-    timeframe = "5"
+    timeframe = 1
     value = {
         "exchange_code":"GDAX",
         "exchange_market":"BTC/USD",
@@ -31,14 +31,15 @@ if __name__ == "__main__":
     data = {
             'values':value,
             'headers':header,
-            'timef':timeframe + "S"}
+            'timef':str(timeframe) + "T"}
+            # + "S" for seconds, + "T" for minutes
     # Initializing websocket.
     ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
     connnectThread = ConnectThread(ws)
     connnectThread.setDaemon(False)
 
     # Setting strategy and subscriptions.
-    strategy = strategies.MACrossover(5, 20, 10,**data)
+    strategy = strategies.MACrossover(50, 20, 10, **data)
     for c in channels:
     	ws.pub.register(c, strategy)
 

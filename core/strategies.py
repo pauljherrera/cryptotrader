@@ -29,7 +29,8 @@ class Strategy(Subscriber):
 
         self.headers = kwargs['headers']
         self.values = kwargs['values']
-        self.timeframe = kwargs['timef']
+        self.timef = kwargs['timef']
+
         self.pub = Publisher(events=['signals'])
         self.accountState = 'CLOSE'
         self.ask = [0]
@@ -39,11 +40,11 @@ class Strategy(Subscriber):
         self.req = requests.post('https://api.coinigy.com/api/v1/data', data=json.dumps(self.values), headers=self.headers)
         self.hist_df = pd.DataFrame(json.loads(self.req.text)['data']['history'])
         self.hist_df = self.hist_df.loc[(self.hist_df['type']=='SELL')]
-        self.hist_df['time_local'] = pd.to_datetime(self.hist_df['time_local'])
+        self.hist_df['time_local'] = pd.to_datetime(self.hist_df['time_local'],format="%Y-%m-%dT%H:%M:%S")
         self.hist_df.set_index('time_local', drop=True, inplace=True)
-        self.hist_df.resample(self.timeframe)
+        self.sample = self.hist_df.resample(self.timef).first().ffill()
 
-        print(self.hist_df)
+        print(self.sample)
 
     def calculate(self, message):
         print('calculate this: {}'.format(message))
@@ -52,8 +53,19 @@ class Strategy(Subscriber):
 #        thread = threading.Thread(target=self.calculate, args=(message,))
 #        thread.start()
         self.calculate(message)
-    def live(self):
-        pass
+
+    def live(self,message):
+
+        live_data = [message['time_local'], '{:.10f}'.format(message['price']) , '{:.10f}'.format(message['quantity']), message['type']]
+        columns_n = ['time_local', 'price', 'quantity', 'type']
+        live_df = pd.DataFrame([live_data], columns=columns_n)
+        live_df['time_local'] = pd.to_datetime(live_df['time_local'], format="%Y-%m-%dT%H:%M:%S")
+        live_df.set_index('time_local', drop=True, inplace=True)
+
+        self.hist_df = pd.concat([live_df, self.hist_df])
+
+        print(self.hist_df.resample(self.timef).first().ffill())
+
 
 
 class MACrossover(Strategy):
@@ -68,7 +80,8 @@ class MACrossover(Strategy):
         Sends a dictionary as trading signal.
         """
         self.parse(message)
-        #super().live()
+        if message['type'] == 'SELL':
+            super().live(message)
 
         # Main logic.
         # Entry signals.
