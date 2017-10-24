@@ -26,10 +26,11 @@ class Strategy(Subscriber):
 
     def __init__(self, *args, **kwargs):
         super().__init__(self, *args, **kwargs)
-
+        #getting the arguments needed from kwargs
         self.headers = kwargs['headers']
         self.values = kwargs['values']
         self.timef = kwargs['timef']
+        self.event_type = kwargs['EventType']
 
         self.pub = Publisher(events=['signals'])
         self.accountState = 'CLOSE'
@@ -37,34 +38,48 @@ class Strategy(Subscriber):
         self.bid = [0]
         self.columns = ['Time', 'Price', 'Type']
         self.data = pd.DataFrame(columns=self.columns).set_index('Time', inplace=True)
+
+        #obtaining the data from the Coinigy API
         self.req = requests.post('https://api.coinigy.com/api/v1/data', data=json.dumps(self.values), headers=self.headers)
         self.hist_df = pd.DataFrame(json.loads(self.req.text)['data']['history'])
-        self.hist_df = self.hist_df.loc[(self.hist_df['type']=='SELL')]
+
+        #only historical data of the specified type are saved (SELL)
+        self.hist_df = self.hist_df.loc[(self.hist_df['type']==self.event_type)]
         self.hist_df['time_local'] = pd.to_datetime(self.hist_df['time_local'],format="%Y-%m-%dT%H:%M:%S")
         self.hist_df.set_index('time_local', drop=True, inplace=True)
-        self.sample = self.hist_df.resample(self.timef).first().ffill()
+        self.hist_df['price']=self.hist_df['price'].astype(float)
 
-        print(self.sample)
+        #resampling in the ohlc format | "[::-1]" reverse the DataFrame
+        self.sample_df = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
+
+        print(self.sample_df)
 
     def calculate(self, message):
         print('calculate this: {}'.format(message))
 
     def update(self, message):
-#        thread = threading.Thread(target=self.calculate, args=(message,))
-#        thread.start()
+        #thread = threading.Thread(target=self.calculate, args=(message,))
+        #thread.start()
+        #If event_type is equal to message['type'] the DataFrame will be updated
+        if message['type'] == self.event_type:
+            self.live(message)
+
         self.calculate(message)
 
-    def live(self,message):
+    def live(self, message):
 
+        #creates a new data frame and concatenates it to our main one
         live_data = [message['time_local'], '{:.10f}'.format(message['price']) , '{:.10f}'.format(message['quantity']), message['type']]
         columns_n = ['time_local', 'price', 'quantity', 'type']
         live_df = pd.DataFrame([live_data], columns=columns_n)
         live_df['time_local'] = pd.to_datetime(live_df['time_local'], format="%Y-%m-%dT%H:%M:%S")
         live_df.set_index('time_local', drop=True, inplace=True)
+        live_df['price'] = live_df['price'].astype(float)
 
+        #new event is added to the hist_df then a resample is made in order to get the ohlc format
         self.hist_df = pd.concat([live_df, self.hist_df])
-
-        print(self.hist_df.resample(self.timef).first().ffill())
+        self.sample_df = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
+        print(self.sample_df)
 
 
 
@@ -80,8 +95,6 @@ class MACrossover(Strategy):
         Sends a dictionary as trading signal.
         """
         self.parse(message)
-        if message['type'] == 'SELL':
-            super().live(message)
 
         # Main logic.
         # Entry signals.

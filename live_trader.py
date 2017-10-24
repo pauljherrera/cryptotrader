@@ -19,7 +19,7 @@ if __name__ == "__main__":
         'TRADE-BTRX--BTC--USDT',
     ]
     #needs ui
-    timeframe = 1
+    timeframe = 5
     value = {
         "exchange_code":"PLNX",
         "exchange_market":"BTC/USDT",
@@ -31,15 +31,18 @@ if __name__ == "__main__":
     data = {
             'values':value,
             'headers':header,
-            'timef':str(timeframe) + "T"}
+            'timef':str(timeframe) + "T",
+            'EventType' : 'SELL'}
             # + "S" for seconds, + "T" for minutes
+            # EventType values = SELL or BUY
+
     # Initializing websocket.
     ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
     connnectThread = ConnectThread(ws)
     connnectThread.setDaemon(False)
 
     # Setting strategy and subscriptions.
-    strategy = strategies.MACrossover(50, 20, 10, **data)
+    strategy = strategies.MACrossover(5, 20, 10, **data)
     for c in channels:
     	ws.pub.register(c, strategy)
 
