@@ -16,13 +16,13 @@ if __name__ == "__main__":
     secret = "cb83efff6c3b2d75e27db699f2d50349"
     auth_id = 1111
     channels=[
-        'TRADE-GDAX--BTC--USD',
+        'TRADE-BTRX--BTC--USDT',
     ]
     #needs ui
     timeframe = 1
     value = {
-        "exchange_code":"GDAX",
-        "exchange_market":"BTC/USD",
+        "exchange_code":"PLNX",
+        "exchange_market":"BTC/USDT",
         "type":"history"}
     header = {
         "Content-Type":"application/json",

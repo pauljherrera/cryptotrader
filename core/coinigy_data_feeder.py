@@ -112,7 +112,7 @@ if __name__ == "__main__":
     secret = "cb83efff6c3b2d75e27db699f2d50349"
     channels=[
         'TRADE-GDAX--BTC--USD',
-        'TRADE-PLNX--USDT--BTC',
+        'TRADE-PLNX--BTC--USDT',
         'TRADE-BTRX--BTC--USDT',
     ]
 
