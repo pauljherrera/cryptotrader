@@ -11,23 +11,25 @@ from core.libraries.websocket_thread import ConnectThread
 
 
 if __name__ == "__main__":
-	# Variables.
+	# User Variables.
     key = "5d69efe677adf65c82ab8fd65477737a"
     secret = "cb83efff6c3b2d75e27db699f2d50349"
+    timeframe = 1 # In minutes.
     auth_id = 1111
+    
+    # Settings.
     channels=[
-        'TRADE-BTRX--BTC--USDT',
+        'TRADE-PLNX--USDT--BTC',
     ]
     #needs ui
-    timeframe = 5
     value = {
         "exchange_code":"PLNX",
         "exchange_market":"BTC/USDT",
         "type":"history"}
     header = {
         "Content-Type":"application/json",
-        "X-API-KEY":"5d69efe677adf65c82ab8fd65477737a",
-        "X-API-SECRET":"cb83efff6c3b2d75e27db699f2d50349"}
+        "X-API-KEY":key,
+        "X-API-SECRET":secret}
     data = {
             'values':value,
             'headers':header,
@@ -37,7 +39,7 @@ if __name__ == "__main__":
             # EventType values = SELL or BUY
 
     # Initializing websocket.
-    ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=False)
+    ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=True)
     connnectThread = ConnectThread(ws)
     connnectThread.setDaemon(False)
 

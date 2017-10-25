@@ -50,9 +50,9 @@ class Strategy(Subscriber):
         self.hist_df['price']=self.hist_df['price'].astype(float)
 
         #resampling in the ohlc format | "[::-1]" reverse the DataFrame
-        self.sample_df = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
+        self.historical_data = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
 
-        print(self.sample_df)
+        print(self.historical_data)
 
     def calculate(self, message):
         print('calculate this: {}'.format(message))
@@ -63,7 +63,7 @@ class Strategy(Subscriber):
         #If event_type is equal to message['type'] the DataFrame will be updated
         if message['type'] == self.event_type:
             self.live(message)
-
+        self.parse(message)
         self.calculate(message)
 
     def live(self, message):
@@ -78,9 +78,17 @@ class Strategy(Subscriber):
 
         #new event is added to the hist_df then a resample is made in order to get the ohlc format
         self.hist_df = pd.concat([live_df, self.hist_df])
-        self.sample_df = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
-        print(self.sample_df)
+        self.historical_data = (self.hist_df['price'].resample(self.timef).ohlc())[::-1]
+        #print(self.historical_data)
 
+
+    def parse(self, message):
+        time_ = dt.datetime.strptime(message['timestamp'], "%Y-%m-%dT%H:%M:%SZ")\
+                       .replace(microsecond=0)
+        new_data = [time_, message['price'], message['type']]
+        new_df = pd.DataFrame([new_data], columns=self.columns)
+        new_df.set_index('Time', inplace=True)
+        self.data = pd.concat([self.data, new_df])
 
 
 class MACrossover(Strategy):
@@ -94,7 +102,6 @@ class MACrossover(Strategy):
         """
         Sends a dictionary as trading signal.
         """
-        self.parse(message)
 
         # Main logic.
         # Entry signals.
@@ -123,11 +130,3 @@ class MACrossover(Strategy):
                           'price' : message['price']}
                 self.pub.dispatch('signals', signal)
 
-
-    def parse(self, message):
-        time_ = dt.datetime.strptime(message['timestamp'], "%Y-%m-%dT%H:%M:%SZ")\
-                       .replace(microsecond=0)
-        new_data = [time_, message['price'], message['type']]
-        new_df = pd.DataFrame([new_data], columns=self.columns)
-        new_df.set_index('Time', inplace=True)
-        self.data = pd.concat([self.data, new_df])
