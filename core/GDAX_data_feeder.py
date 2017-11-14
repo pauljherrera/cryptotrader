@@ -13,7 +13,6 @@ from core.libraries.channels import channels as ch
 class GDAXWebSocketClient():
 
     def __init__(self,data):
-
         websocket.enableTrace(True)
         self.ws = websocket.WebSocketApp("wss://ws-feed.gdax.com",
                                         on_message=self.on_message,
@@ -21,14 +20,15 @@ class GDAXWebSocketClient():
         self.sub = json.dumps(data)
         self.ws.op_open = self.on_open
         self.ws.run_forever()
-    def on_message(self, ws, message):
 
+    def on_message(self, ws, message):
         types = json.loads(message)['type']
         if types == "received" or types == "open":
             print(message)
 
     def on_open(self, ws):
         ws.send(self.sub)
+
 
 def main():
     pairs=["ETH-USD","BTC-USD"]
