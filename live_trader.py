@@ -6,51 +6,47 @@ Created on Wed Jul 26 20:54:30 2017
 """
 
 from core import strategies, trader
+from core.strategies_gdax import Strategy
 from core.coinigy_data_feeder import CoinigyWebsocket
 from core.libraries.websocket_thread import ConnectThread
-
+from core.GDAX_data_feeder import GDAXWebSocketClient
+from core.libraries.gdax_auth import Authentication
 
 if __name__ == "__main__":
 	# User Variables.
-    key = "5d69efe677adf65c82ab8fd65477737a"
-    secret = "cb83efff6c3b2d75e27db699f2d50349"
-    timeframe = 1 # In minutes.
-    auth_id = 1111
-    
-    # Settings.
-    channels=[
-        'TRADE-PLNX--USDT--BTC',
-    ]
-    #needs ui
-    value = {
-        "exchange_code":"PLNX",
-        "exchange_market":"BTC/USDT",
-        "type":"history"}
-    header = {
-        "Content-Type":"application/json",
-        "X-API-KEY":key,
-        "X-API-SECRET":secret}
-    data = {
-            'values':value,
-            'headers':header,
-            'timef':str(timeframe) + "T",
-            'EventType' : 'SELL'}
-            # + "S" for seconds, + "T" for minutes
-            # EventType values = SELL or BUY
 
-    # Initializing websocket.
-    ws = CoinigyWebsocket(key, secret, channels=channels, reconnect=True)
-    connnectThread = ConnectThread(ws)
-    connnectThread.setDaemon(False)
+    channels = ["ETH-USD"]
+    timeframe = 2 #minutes
+    parameters = {
+        'pairs': channels[0],
+        'granularity': str(timeframe * 60),
+        'ATR-Period': 14 }
 
+
+    #Authentication
+    API_KEY = "c2c736241299f78327809504d2ffb0e7"
+    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
+    API_PASS = "si3b5hm7609"
+
+    auth=Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
+
+    request = {"type": "subscribe",
+            "channels": [{"name": "full", "product_ids": channels }]}
+
+    request.update(auth)
+    #comment this for no auth 
+
+    ws = GDAXWebSocketClient(request,channels)
+    connectThread = ConnectThread(ws)
+    connectThread.setDaemon(False)
     # Setting strategy and subscriptions.
-    strategy = strategies.MACrossover(5, 20, 10, **data)
+    strategy = Strategy(**parameters)
     for c in channels:
     	ws.pub.register(c, strategy)
 
     # Setting trader and subscriptions.
-    trader = trader.Trader(key, secret, auth_id=auth_id)
-    strategy.pub.register('signals', trader)
+    #Trader = trader.Trader(key, secret, auth_id=auth_id)
+    #strategy.pub.register('signals', trader)
 
     # Start connection.
-    connnectThread.start()
+    connectThread.start()
