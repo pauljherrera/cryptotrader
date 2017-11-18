@@ -13,8 +13,32 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.libraries.pub_sub import Publisher, Subscriber
+from core.libraries.gdax_api import GDAX_Handler
 
-class Trader(Subscriber):
+
+class GDAXTrader(GDAX_Handler):
+    def place_order(self, _type='market', size='0.01', side='buy',
+                    product_id='BTC_USD', price=None):
+        order = super().place_order(_type='market', size='0.01', side='buy',
+                                    product_id='BTC_USD', price=None)
+        self.last_order = order
+        
+    def close_last_order(self):
+        # Setting parameters.
+        if self.order_dict['side'] == 'buy':
+            side = 'sell'
+        elif self.order_dict['side'] == 'sell':
+            side = 'buy'
+        size = self.order_dict['size']
+        product_id = self.order_dict['product_id']
+    
+        # Placing trade.
+        order = self.place_order(size=size, side=side, product_id=product_id)
+        self.last_order = order
+
+
+
+class CoinigyTrader(Subscriber):
     """
     Abstract Base Class for trader.
     """
@@ -53,7 +77,8 @@ class Trader(Subscriber):
         thread = threading.Thread(target=self.trade, args=(message,))
         thread.start()
     
-    
+if __name__ == '__main__':
+        
 
 
 
