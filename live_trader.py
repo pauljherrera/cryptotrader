@@ -14,29 +14,30 @@ from core.libraries.gdax_auth import Authentication
 
 if __name__ == "__main__":
 	# User Variables.
-
+    #needs coments
     channels = ["ETH-USD"]
-    timeframe = 2 #minutes
+    bars=[5,15,30]
+    #minutes
     parameters = {
-        'pairs': channels[0],
-        'granularity': str(timeframe * 60),
-        'ATR-Period': 14 }
+        'pairs': "ETH-USD",
+        'ATR-Period': 14,
+        'Bars': bars}
 
 
     #Authentication
-    API_KEY = "c2c736241299f78327809504d2ffb0e7"
-    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
-    API_PASS = "si3b5hm7609"
+    API_KEY = ""
+    API_SECRET = ""
+    API_PASS = ""
 
-    auth=Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
+    auth = Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
 
     request = {"type": "subscribe",
             "channels": [{"name": "full", "product_ids": channels }]}
 
     request.update(auth)
-    #comment this for no auth 
+    #comment this for no auth
 
-    ws = GDAXWebSocketClient(request,channels)
+    ws = GDAXWebSocketClient(request, channels)
     connectThread = ConnectThread(ws)
     connectThread.setDaemon(False)
     # Setting strategy and subscriptions.

@@ -13,39 +13,82 @@ from core.libraries.pub_sub import Publisher, Subscriber
 
 
 class Strategy(Subscriber):
-
+#needs coments
     def __init__(self, *args, **kwargs):
-
-        self.timeframe ={'granularity': kwargs['granularity']}
         self.product = kwargs['pairs']
         self.period = kwargs['ATR-Period']
-        self.req = requests.get("https://api.gdax.com//products/{}/candles".format(self.product),params=self.timeframe)
-        self.data = json.loads(self.req.text)
-        self.headers = ["time", "low", "high", "open", "close", "volume"]
-        self.hist_df = pd.DataFrame(self.data, columns=self.headers)
-        self.hist_df['time'] = pd.to_datetime(self.hist_df['time'],unit = 's')
-        self.hist_df[['low','high','open','close']] = self.hist_df[['low','high','open','close']].apply(pd.to_numeric)
-        self.hist_df.set_index('time', drop=True, inplace=True)
+        self.bars = kwargs['Bars']
+        self.check = True
+        self.temp_df = pd.DataFrame(columns=['time','price','size'])
+        self.temp_df['time'] = pd.to_datetime(self.temp_df['time'], format="%Y-%m-%dT%H:%M:%S.%fZ")
+        self.temp_df = self.temp_df.set_index('time', drop=True, inplace = True)
+        self.main_df = self.df_load(60, self.product)
+        self.main_df.drop(self.main_df.tail(1).index,inplace=True)
+        self.timer = dt.datetime.now()
+        self.main_atr = self.ATR(self.main_df)
 
-        #self.ohlc_df = self.hist_df.resample(self.timeframe).asfreq()[1:]
+        for i in self.bars:
+            print(self.main_atr.resample(str(i)+'min').asfreq())
 
-        #self.queue=[]
-        self.ATR()
-    def ATR(self):
-        self.hist_df['TR1'] = abs (self.hist_df['high'] - self.hist_df['low'])
-        self.hist_df['TR2'] = abs (self.hist_df['high'] - self.hist_df['close'].shift())
-        self.hist_df['TR3'] = abs (self.hist_df['low'] - self.hist_df['close'].shift())
-        self.hist_df['TrueRange'] = self.hist_df[['TR1','TR2','TR3']].max(axis=1)
-        self.hist_df['ATR'] = self.hist_df.TrueRange.rolling(self.period).mean()
-        del [self.hist_df['TR1'],self.hist_df['TR2'],self.hist_df['TR3']]
-        print(self.hist_df)
+
+
+    def df_load(self, granularity, product):
+
+        timeframe = {'granularity': granularity}
+        req = requests.get("https://api.gdax.com//products/{}/candles".format(product),params=timeframe)
+        data = json.loads(req.text)
+        headers = ["time", "low", "high", "open", "close", "volume"]
+        hist_df = pd.DataFrame(data, columns=headers)
+        hist_df['time'] = pd.to_datetime(hist_df['time'],unit = 's')
+        hist_df[['low','high','open','close']] = hist_df[['low','high','open','close']].apply(pd.to_numeric)
+        hist_df.set_index('time', drop=True, inplace=True)
+        hist_df = hist_df[['open','high','low','close','volume']]
+
+        return hist_df
+
+    def ATR(self, df):
+        df['TR1'] = abs (df['high'] - df['low'])
+        df['TR2'] = abs (df['high'] - df['close'].shift())
+        df['TR3'] = abs (df['low'] - df['close'].shift())
+        df['TrueRange'] = df[['TR1','TR2','TR3']].max(axis=1)
+        df['ATR'] = df.TrueRange.rolling(self.period).mean().ffill()
+        del [df['TR1'],df['TR2'],df['TR3']]
+        return df
+
+    def check_time(self, clock):
+        if (self.check):
+             self.check = False
+             self.time = clock
 
     def update(self, message):
-        #self.queue.append(message)
-        print(message)
-        time.sleep(1) #just for  testing
+        #print(message)
+        self.live(message)
 
+    def live(self, message):
+        #creates a new data frame and concatenates it to our main one
+        time = dt.datetime.strptime(message['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+        self.check_time(time)
 
+        if (time.minute == self.time.minute):
+            live_data = [time, message['price'] , message['size']]
+            columns_n = ['time', 'price', 'size']
+            live_df = pd.DataFrame([live_data], columns=columns_n)
+            live_df.set_index('time', drop=True, inplace=True)
+            self.temp_df = pd.concat([live_df,self.temp_df])
+            self.temp_df[['price', 'size']] = self.temp_df[['price','size']].apply(pd.to_numeric)
+        else:
+            print(self.temp_df)
+            self.time = time
+            vol_s = self.temp_df['size']
+            vol_s = vol_s.resample('1T').sum()
+            self.new_df = self.temp_df['price'].resample('1T').ohlc()
+            self.new_df['volume'] = vol_s
+            self.main_df = pd.concat([self.new_df, self.main_df])
+            df_atr = self.ATR(self.main_df)
+
+            for i in self.bars:
+                print(df_atr.resample(str(i)+'min').asfreq())
+            self.temp_df = self.temp_df[0:0]
 
 #i will add this soon
 """class MACrossover(Strategy):

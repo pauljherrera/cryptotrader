@@ -37,10 +37,11 @@ class Authentication(AuthBase):
         signature = hmac.new(hmac_key, message, hashlib.sha256)
         signature_b64 = base64.b64encode(signature.digest()).decode('utf-8')
 
-        return {
+        request.headers.update({
             'Content-Type': 'Application/JSON',
             'CB-ACCESS-SIGN': signature_b64,
             'CB-ACCESS-TIMESTAMP': timestamp,
             'CB-ACCESS-KEY': self.api_key,
             'CB-ACCESS-PASSPHRASE': self.passphrase
-        }
+        })
+        return request

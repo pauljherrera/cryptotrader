@@ -28,15 +28,18 @@ class GDAXWebSocketClient():
             self.pub.register(c, channel)
 
     def on_message(self, message):
-        if (message['type'] == "received" or message['type'] == "open") and message['side']== 'sell':
+        if message['type'] == "match":
             self.pub.dispatch(message['product_id'], message)
 
     def on_open(self):
         print("--Subscribed--")
 
     def on_error(self, err):
-        self.stop = True
-        print('{}'.format(err))
+        try:
+            self.connect()
+        except:
+            self.stop = True
+            print('{}'.format(err))
 
     def connect(self):
         self.on_open()
@@ -47,22 +50,27 @@ class GDAXWebSocketClient():
     def listen(self):
         while not self.stop:
             try:
+                if int(time.time()%30) == 0:
+                        self.ws.ping("alive")
+
                 msg = json.loads(self.ws.recv())
                 self.on_message(msg)
             except ValueError as e:
+                self.on_error(e)
+            except Exception as e:
                 self.on_error(e)
 
 def main():
     pairs=["ETH-USD","BTC-USD"]
 
-    API_KEY = "c2c736241299f78327809504d2ffb0e7"
-    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
-    API_PASS = "si3b5hm7609"
+    API_KEY = ""
+    API_SECRET = ""
+    API_PASS = ""
 
     auth=Authentication(API_KEY, API_SECRET, API_PASS)
     request = {"type": "subscribe",
             "channels": [{"name": "full", "product_ids": pairs }]}
-    #res = requests.get('https://api.gdax.com/'+ 'accounts', auth=auth)
+    res = requests.get('https://api.gdax.com/'+ 'accounts', auth=auth)
     #test page example
     print(res.json())
 
