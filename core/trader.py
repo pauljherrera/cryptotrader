@@ -16,12 +16,27 @@ from core.libraries.pub_sub import Publisher, Subscriber
 from core.libraries.gdax_api import GDAX_Handler
 
 
-class GDAXTrader(GDAX_Handler):
+class Trader:
+    def place_order(self, _type='market', size='0.01', side='buy',
+                    product_id='BTC_USD', price=None):
+        print('\n{} {} order'.format(product_id, _type))
+        print('Type: {}.\nSize: {}.\n'.format(side, size))
+        
+    def close_last_order(self):
+        print('\nLast open order closed.\n')
+
+
+
+class GDAXTrader(GDAX_Handler, Trader):
     def place_order(self, _type='market', size='0.01', side='buy',
                     product_id='BTC_USD', price=None):
         order = super().place_order(_type='market', size='0.01', side='buy',
                                     product_id='BTC_USD', price=None)
         self.last_order = order
+        
+        super().place_order(_type='market', size='0.01', side='buy',
+                            product_id='BTC_USD', price=None)
+        
         
     def close_last_order(self):
         # Setting parameters.
@@ -35,6 +50,8 @@ class GDAXTrader(GDAX_Handler):
         # Placing trade.
         order = self.place_order(size=size, side=side, product_id=product_id)
         self.last_order = order
+        
+        super().close_last_order()
 
 
 
