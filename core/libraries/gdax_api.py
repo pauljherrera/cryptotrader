@@ -15,8 +15,11 @@ from core.libraries.gdax_auth import Authentication
 
 
 class GDAX_Handler:
-    def __init__(self, auth=None, *args, **kwargs):
-        self.url = 'https://api.gdax.com'
+    def __init__(self, auth=None, sandbox=False, *args, **kwargs):
+        if sandbox:
+            self.url = 'https://api-public.sandbox.gdax.com'
+        else:
+            self.url = 'https://api.gdax.com'
         self.order_dict = {
             "type": "market",
             "size": "0.01",
@@ -25,6 +28,8 @@ class GDAX_Handler:
             "product_id": "BTC-USD"
         }
         
+        self.auth = auth
+                
     def get_ticker(self, product_id):
         r = requests.get(self.url + '/products/{}/ticker'.format(product_id))
         if r.status_code == 200:
@@ -33,14 +38,14 @@ class GDAX_Handler:
             print("Error in response.")
     
     def list_accounts(self):
-        r = requests.get(self.url + '/accounts', auth=auth)
+        r = requests.get(self.url + '/accounts', auth=self.auth)
         if r.status_code == 200:
             return json.loads(r.text)
         else:
             print("Error in response.")
     
     def place_order(self, _type='market', size='0.01', side='buy',
-                    product_id='BTC_USD', price=None):
+                    product_id='BTC-USD', price=None, verbose=True):
         # Creating trade JSON.
         order_dict = {}
         order_dict['type'] = _type
@@ -54,11 +59,15 @@ class GDAX_Handler:
         self.order_dict = order_dict
         
         # Placing trade.
-        r = requests.post(self.url + '/orders', json=order_dict, auth=auth)
+        r = requests.post(self.url + '/orders', data=json.dumps(order_dict), 
+                          auth=self.auth)
         if r.status_code == 200:
+            if verbose:
+                print('\nNew order: {}, {}, {}'.format(product_id, side, size))
             return json.loads(r.text)
         else:
             print("Error in response.")
+            return r
 
 
 if __name__ == '__main__':

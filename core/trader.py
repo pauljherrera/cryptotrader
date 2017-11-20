@@ -14,6 +14,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.libraries.pub_sub import Publisher, Subscriber
 from core.libraries.gdax_api import GDAX_Handler
+from core.libraries.gdax_auth import Authentication
 
 
 class Trader:
@@ -23,19 +24,17 @@ class Trader:
         print('Type: {}.\nSize: {}.\n'.format(side, size))
         
     def close_last_order(self):
-        print('\nLast open order closed.\n')
+        print('\nLast order closed.\n')
 
 
 
 class GDAXTrader(GDAX_Handler, Trader):
     def place_order(self, _type='market', size='0.01', side='buy',
-                    product_id='BTC_USD', price=None):
-        order = super().place_order(_type='market', size='0.01', side='buy',
-                                    product_id='BTC_USD', price=None)
+                    product_id='BTC-USD', price=None, verbose=True):
+        order = super().place_order(_type=_type, size=size, side=side,
+                                    product_id=product_id, price=price,
+                                    verbose=verbose)
         self.last_order = order
-        
-        super().place_order(_type='market', size='0.01', side='buy',
-                            product_id='BTC_USD', price=None)
         
         
     def close_last_order(self):
@@ -48,7 +47,8 @@ class GDAXTrader(GDAX_Handler, Trader):
         product_id = self.order_dict['product_id']
     
         # Placing trade.
-        order = self.place_order(size=size, side=side, product_id=product_id)
+        order = self.place_order(size=size, side=side, product_id=product_id,
+                                 verbose=False)
         self.last_order = order
         
         super().close_last_order()
@@ -95,7 +95,14 @@ class CoinigyTrader(Subscriber):
         thread.start()
     
 if __name__ == '__main__':
-        
+    # API keys.
+    API_key = 'c2c736241299f78327809504d2ffb0e7'
+    passphrase = 'si3b5hm7609'
+    secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    
+    # Instantianting the objects needed.
+    auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
+    trader = GDAXTrader(auth=auth)
 
 
 
