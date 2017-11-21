@@ -27,9 +27,9 @@ if __name__ == "__main__":
 
 
     #Authentication
-    API_KEY = "c2c736241299f78327809504d2ffb0e7"
-    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
-    API_PASS = "si3b5hm7609"
+    API_KEY = ""
+    API_SECRET = ""
+    API_PASS = ""
 
     auth = Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
 
