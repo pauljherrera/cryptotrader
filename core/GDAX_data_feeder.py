@@ -35,11 +35,9 @@ class GDAXWebSocketClient():
         print("--Subscribed--")
 
     def on_error(self, err):
-        try:
-            self.connect()
-        except:
-            self.stop = True
-            print('{}'.format(err))
+
+        self.stop = True
+        print('{}'.format(err))
 
     def connect(self):
         self.on_open()

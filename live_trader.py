@@ -5,7 +5,7 @@ Created on Wed Jul 26 20:54:30 2017
 @author: Paúl Herrera
 """
 
-from core import strategies, trader
+from core import strategies
 from core.strategies_gdax import Strategy
 from core.coinigy_data_feeder import CoinigyWebsocket
 from core.libraries.websocket_thread import ConnectThread
@@ -15,19 +15,21 @@ from core.libraries.gdax_auth import Authentication
 if __name__ == "__main__":
 	# User Variables.
     #needs coments
-    channels = ["ETH-USD"]
-    bars=[5,15,30]
+    channels = ["BTC-USD"]
+    bars = [5,15,30]
+    v_mult = 2
     #minutes
     parameters = {
-        'pairs': "ETH-USD",
+        'pairs': "BTC-USD",
         'ATR-Period': 14,
-        'Bars': bars}
+        'Bars': bars,
+        'vstop multiplier': v_mult}
 
 
     #Authentication
-    API_KEY = ""
-    API_SECRET = ""
-    API_PASS = ""
+    API_KEY = "c2c736241299f78327809504d2ffb0e7"
+    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
+    API_PASS = "si3b5hm7609"
 
     auth = Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
 
