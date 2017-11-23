@@ -1,56 +1,71 @@
-import numpy as np
 import pandas as pd
 import datetime as dt
-from urllib import request
-import threading
-import json
 import sys
 import os
-import requests
-import stockstats
-import time
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-from core.libraries.pub_sub import Publisher, Subscriber
+import gdax
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+from core.libraries.pub_sub import Subscriber
+from core.libraries.gdax_data_downloader import get_historic_rates
+from core.libraries.resampler import resample_ohlcv
 
 class Strategy(Subscriber):
-#needs coments
-    def __init__(self, *args, **kwargs):
+    """
+    Abstract class for new strategies.
+    Subscribes to a data channel, parses the data and makes a call
+    each tick (on_tick), each minute (on_minute_bar) and 
+    each customized interval (on_bar).
+    """
+    def __init__(self, trader=None, *args, **kwargs):
         self.product = kwargs['pairs']
         self.period = kwargs['ATR-Period']
-        self.bars = kwargs['Bars']
+        self.vstop_timeframe = kwargs['vstop timeframe']
         self.multiplier = kwargs['vstop multiplier']
+        self.data_days = kwargs['data days']
 
+        self.client = gdax.PublicClient()
+        self.trader = trader
 
+        self.counter = 0
         self.check = True
         self.temp_df = pd.DataFrame(columns=['time','price','size'])
         self.temp_df['time'] = pd.to_datetime(self.temp_df['time'], format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace = True)
+        
         self.main_df = self.df_load(60, self.product)
         self.main_df.drop(self.main_df.head(1).index,inplace=True)
         self.timer = dt.datetime.now()
         self.main_atr = self.ATR(self.main_df)
         self.check_v = True
-        self.attr = {}
-
-        for i in self.bars:
-            print(self.main_atr.resample(str(i)+'min').asfreq())
-
+        self.vstop = {}
         self.v_stop_init()
 
+        # Initializing daemon for getting account balance
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(self._scheduled_task, trigger='cron', 
+                          minute='*/{}'.format(self.vstop_timeframe))
+        
+        scheduler.start()
+                
+    def _scheduled_task(self):
+        self.v_stop_calculate()
+        self.on_bar()
 
     def df_load(self, granularity, product):
-
-        timeframe = {'granularity': granularity}
-        req = requests.get("https://api.gdax.com//products/{}/candles".format(product),params=timeframe)
-        data = json.loads(req.text)
-        headers = ["time", "low", "high", "open", "close", "volume"]
-        hist_df = pd.DataFrame(data, columns=headers)
-        hist_df['time'] = pd.to_datetime(hist_df['time'],unit = 's')
-        hist_df[['low','high','open','close']] = hist_df[['low','high','open','close']].apply(pd.to_numeric)
-        hist_df.set_index('time', drop=True, inplace=True)
-        hist_df = hist_df[['open','high','low','close','volume']]
-
+        today = dt.date.today()
+        start_date_str = (today - dt.timedelta(days=self.data_days)).isoformat()
+        end_date_str = (today + dt.timedelta(days=1)).isoformat()
+        print('\nGetting historical data')
+        hist_df = get_historic_rates(self.client, product='BTC-USD',
+                         start_date=start_date_str, end_date=end_date_str,
+                         granularity=granularity, beautify=False)
+        hist_df['time'] = pd.to_datetime(hist_df['time'], unit='s')
+        hist_df.set_index('time', inplace=True)
+        hist_df.sort_index(inplace=True)
+        hist_df = hist_df.groupby(hist_df.index).first()
+        
         return hist_df
 
     def ATR(self, df):
@@ -66,55 +81,44 @@ class Strategy(Subscriber):
         return df['ATR'].head(1) if df['ATR'].last_valid_index() == None else df['ATR'].loc[df['ATR'].last_valid_index()]
 
     def v_stop_init(self):
-        self.atr_s = self.ATR(self.main_df).resample('15T').asfreq().ffill()
-        print(self.atr_s)
-        self.min_v = min(self.main_df['close'])
-        self.max_v = max(self.main_df['close'])
+        self.atr_s = self.get_timeframe(self.vstop_timeframe)
 
-        self.attr['Close price'] = self.atr_s['close'][-1]
-        self.attr['Multiplier'] = self.multiplier
-        self.attr['Trend'] = "down"
-        self.attr['ATR'] =  self.atr_value(self.atr_s)
-        self.attr['min_price'] = self.min_v
-        self.attr['max_price'] = self.max_v
+        self.vstop['Multiplier'] = self.multiplier
+        self.vstop['Trend'] = "down"
+        self.vstop['ATR'] =  self.atr_s['ATR'][-1]
+        self.vstop['min_price'] = self.atr_s['close'][-1]
+        self.vstop['max_price'] = self.atr_s['close'][-1]
+        self.vstop['vstop'] = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
 
-        if self.attr['Trend'] == "up":
-            self.attr['vstop'] = self.max_v - self.multiplier * self.attr['ATR']
+
+    def v_stop_calculate(self):
+        self.atr_s = self.get_timeframe(self.vstop_timeframe)
+
+        price = float(self.main_df['close'].tail(1))
+        self.vstop['max_price'] = max(self.vstop['max_price'], price)
+        self.vstop['min_price'] = min(self.vstop['min_price'], price)
+        self.vstop['ATR'] = self.atr_value(self.atr_s)
+
+        if self.vstop['Trend'] == "up":
+            stop =  self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
+            self.vstop['vstop'] = max(self.vstop['vstop'], stop)
         else:
-            self.attr['vstop'] = self.min_v + self.multiplier * self.attr['ATR']
+            stop = self.vstop['min_price'] + self.multiplier * self.vstop['ATR']
+            self.vstop['vstop'] = min(self.vstop['vstop'], stop)
 
-        print(self.attr)
+        trend = "up" if price >= self.vstop['vstop'] else "down"
+        change = (trend != self.vstop['Trend'])
 
-    def v_stop(self):
-        self.atr_s = self.ATR(self.main_df).resample('15T').asfreq().ffill()
-
-        price = float(self.main_df['close'].head(1))
-        print(price)
-        self.attr['max_price'] = max(self.attr['max_price'], price)
-        self.attr['min_price'] = min(self.attr['min_price'], price)
-        self.attr['ATR'] = self.atr_value(self.atr_s)
-
-        if self.attr['Trend'] == "up":
-            self.attr['stop'] =  self.attr['max_price'] - self.multiplier * self.attr['ATR']
-            self.attr['vstop'] = max(self.attr['vstop'], self.attr['stop'])
-        else:
-            self.attr['stop'] = self.attr['min_price'] + self.multiplier * self.attr['ATR']
-            self.attr['vstop'] = min(self.attr['vstop'], self.attr['stop'])
-
-        trend = "up" if price >= self.attr['vstop'] else "down"
-        change = (trend != self.attr['Trend'])
-
-        self.attr['Trend'] = trend
+        self.vstop['Trend'] = trend
         if change:
-            self.attr['max_price'] = price
-            self.attr['min_price'] = price
+            self.vstop['max_price'] = price
+            self.vstop['min_price'] = price
 
             if trend == 'up':
-                self.attr['vstop'] = self.attr['max_price'] - self.multiplier * self.attr['ATR']
+                self.vstop['vstop'] = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
             else:
-                self.attr['vstop'] = self.attr['min_price'] + self.multiplier * self.attr['ATR']
+                self.vstop['vstop'] = self.vstop['min_price'] + self.multiplier * self.vstop['ATR']
 
-        return self.attr #{'trend': self.attr['trend'],'vstop' : self.attr['vstop'], 'max_price' : self.attr['max_price'], 'min_price' : self.attr['min_price']}
 
     def check_time(self, clock):
         if (self.check):
@@ -122,8 +126,9 @@ class Strategy(Subscriber):
              self.time = clock
 
     def update(self, message):
-        #print(message)
         self.live(message)
+        self.counter += 1
+        self.on_tick()
 
     def live(self, message):
         #creates a new data frame and concatenates it to our main one
@@ -135,7 +140,7 @@ class Strategy(Subscriber):
             columns_n = ['time', 'price', 'size']
             live_df = pd.DataFrame([live_data], columns=columns_n)
             live_df.set_index('time', drop=True, inplace=True)
-            self.temp_df = pd.concat([live_df,self.temp_df])
+            self.temp_df = pd.concat([self.temp_df, live_df])
             self.temp_df[['price', 'size']] = self.temp_df[['price','size']].apply(pd.to_numeric)
         else:
             self.time = time
@@ -143,51 +148,23 @@ class Strategy(Subscriber):
             vol_s = vol_s.resample('1T').sum()
             self.new_df = self.temp_df['price'].resample('1T').ohlc()
             self.new_df['volume'] = vol_s
-            self.main_df = pd.concat([self.new_df, self.main_df])
-            df_atr = self.ATR(self.main_df)
-            self.v_stop_init()
-            for i in self.bars:
-                print(df_atr.resample(str(i)+'min').asfreq().ffill())
-            self.temp_df = self.temp_df[0:0]
-            print(self.v_stop())
+            self.main_df = pd.concat([self.main_df, self.new_df])
+            self.on_minute_bar()
+            
+    def get_timeframe(self, timeframe):
+        resampled_df = resample_ohlcv(self.main_df, rule='{}T'.format(timeframe))
+        atr_df = self.ATR(resampled_df)
+        
+        return atr_df
 
-#i will add this soon
-"""class MACrossover(Strategy):
-    def __init__(self, timeframe, long_period, short_period, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
-        self.timeframe = str(timeframe) + 'S'
-        self.long_period = long_period
-        self.short_period = short_period
+    def on_tick(self):
+        pass
+        
+    def on_minute_bar(self):
+        print('\nNew minute bar')
+    
+    def on_bar(self):
+        print('\nNew bar')
+        
 
-    def calculate(self, message):
-        "
-        Sends a dictionary as trading signal.
-        "
 
-        # Main logic.
-        # Entry signals.
-        if (self.accountState == 'CLOSE') and (message['side'] == 'BUY'):
-            self.ask = self.data[self.data.Type == 'BUY'].resample(self.timeframe).last().ffill()
-            long_ma = self.ask.Price.rolling(self.long_period).mean()
-            short_ma = self.ask.Price.rolling(self.short_period).mean()
-            print('Long MA: {} - Short MA: {}'.format(long_ma[-1], short_ma[-1]))
-            if (short_ma[-1] > long_ma[-1]):
-                print('Buy signal')
-                self.accountState = 'BUY'
-                signal = {'type' : message['type'],
-                          'price' : message['price']}
-                self.pub.dispatch('signals', signal)
-
-        # Exit signals.
-        elif (self.accountState == 'BUY') and (message['type'] == 'SELL'):
-            self.bid = self.data[self.data.Type == 'SELL'].resample(self.timeframe).last().ffill()
-            long_ma = self.bid.Price.rolling(self.long_period).mean()
-            short_ma = self.bid.Price.rolling(self.short_period).mean()
-            print('Long MA: {} - Short MA: {}'.format(long_ma[-1], short_ma[-1]))
-            if (short_ma[-1] < long_ma[-1]):
-                print('Close signal')
-                self.accountState = 'CLOSE'
-                signal = {'type' : message['type'],
-                          'price' : message['price']}
-                self.pub.dispatch('signals', signal)
-"""

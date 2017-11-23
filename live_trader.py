@@ -2,54 +2,72 @@
 """
 Created on Wed Jul 26 20:54:30 2017
 
-@author: Paúl Herrera
+@author: Avanti Financial Services
 """
 
-from core import strategies
 from core.strategies_gdax import Strategy
-from core.coinigy_data_feeder import CoinigyWebsocket
 from core.libraries.websocket_thread import ConnectThread
 from core.GDAX_data_feeder import GDAXWebSocketClient
 from core.libraries.gdax_auth import Authentication
+from core.trader import GDAXTrader
+
+
+class CustomStrategy(Strategy):
+    def on_tick(self):
+        pass
+        
+    def on_minute_bar(self):
+        print('\nNew minute bar')
+    
+    def on_bar(self):
+        """
+        Main methods you can use.
+        self.vstop
+        self.get_timeframe()
+        self.trader.place_order()
+        self.trader.close_last_order()
+        """
+
 
 if __name__ == "__main__":
 	# User Variables.
-    #needs coments
-    channels = ["BTC-USD"]
-    bars = [5,15,30]
-    v_mult = 2
-    #minutes
-    parameters = {
-        'pairs': "BTC-USD",
-        'ATR-Period': 14,
-        'Bars': bars,
-        'vstop multiplier': v_mult}
-
+    API_KEY = "c2c736241299f78327809504d2ffb0e7 "
+    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
+    API_PASS = "si3b5hm7609"
+    
+    product = "BTC-USD"
+    ATR_period = 14
+    timeframe = 60
+    VStop_multiplier = 2
+    data_days = 2
 
     #Authentication
-    API_KEY = ""
-    API_SECRET = ""
-    API_PASS = ""
-
-    auth = Authentication(API_KEY, API_SECRET, API_PASS).get_dict()
-
+    auth = Authentication(API_KEY, API_SECRET, API_PASS)
     request = {"type": "subscribe",
-            "channels": [{"name": "full", "product_ids": channels }]}
+               "channels": [{"name": "full", "product_ids": [product] }]}
 
-    request.update(auth)
-    #comment this for no auth
+    request.update(auth.get_dict())     #comment this for no auth
 
-    ws = GDAXWebSocketClient(request, channels)
+    # Setting data feeder.
+    ws = GDAXWebSocketClient(request, [product])
     connectThread = ConnectThread(ws)
     connectThread.setDaemon(False)
-    # Setting strategy and subscriptions.
-    strategy = Strategy(**parameters)
-    for c in channels:
+    
+    # Setting strategy and subscribing to data channels.
+    parameters = {
+        'pairs': product,
+        'ATR-Period': ATR_period,
+        'vstop timeframe': timeframe,
+        'vstop multiplier': VStop_multiplier,
+        'data days': data_days}
+    
+    strategy = CustomStrategy(**parameters)
+    for c in [product]:
     	ws.pub.register(c, strategy)
 
-    # Setting trader and subscriptions.
-    #Trader = trader.Trader(key, secret, auth_id=auth_id)
-    #strategy.pub.register('signals', trader)
+    # Setting trader.
+    trader = GDAXTrader(auth=auth)
+    strategy.trader = trader
 
     # Start connection.
     connectThread.start()
