@@ -15,7 +15,7 @@ class Strategy(Subscriber):
     """
     Abstract class for new strategies.
     Subscribes to a data channel, parses the data and makes a call
-    each tick (on_tick), each minute (on_minute_bar) and 
+    each tick (on_tick), each minute (on_minute_bar) and
     each customized interval (on_bar).
     """
     def __init__(self, trader=None, *args, **kwargs):
@@ -33,7 +33,7 @@ class Strategy(Subscriber):
         self.temp_df = pd.DataFrame(columns=['time','price','size'])
         self.temp_df['time'] = pd.to_datetime(self.temp_df['time'], format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace = True)
-        
+
         self.main_df = self.df_load(60, self.product)
         self.main_df.drop(self.main_df.head(1).index,inplace=True)
         self.timer = dt.datetime.now()
@@ -44,16 +44,20 @@ class Strategy(Subscriber):
 
         # Initializing daemon for getting account balance
         scheduler = BackgroundScheduler()
-        scheduler.add_job(self._scheduled_task, trigger='cron', 
+        scheduler.add_job(self._scheduled_task, trigger='cron',
                           minute='*/{}'.format(self.vstop_timeframe))
-        
+
         scheduler.start()
-                
+
     def _scheduled_task(self):
         self.v_stop_calculate()
         self.on_bar()
 
     def df_load(self, granularity, product):
+        """
+            Downloads the historical data from GDAX
+            Returns: DataFrame
+        """
         today = dt.date.today()
         start_date_str = (today - dt.timedelta(days=self.data_days)).isoformat()
         end_date_str = (today + dt.timedelta(days=1)).isoformat()
@@ -65,7 +69,7 @@ class Strategy(Subscriber):
         hist_df.set_index('time', inplace=True)
         hist_df.sort_index(inplace=True)
         hist_df = hist_df.groupby(hist_df.index).first()
-        
+
         return hist_df
 
     def ATR(self, df):
@@ -131,7 +135,10 @@ class Strategy(Subscriber):
         self.on_tick()
 
     def live(self, message):
-        #creates a new data frame and concatenates it to our main one
+        """
+            creates a new data frame loads it and every minute temp_df
+            concatenates it into our main one main_df
+        """
         time = dt.datetime.strptime(message['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
         self.check_time(time)
 
@@ -150,21 +157,18 @@ class Strategy(Subscriber):
             self.new_df['volume'] = vol_s
             self.main_df = pd.concat([self.main_df, self.new_df])
             self.on_minute_bar()
-            
+
     def get_timeframe(self, timeframe):
         resampled_df = resample_ohlcv(self.main_df, rule='{}T'.format(timeframe))
         atr_df = self.ATR(resampled_df)
-        
+
         return atr_df
 
     def on_tick(self):
         pass
-        
+
     def on_minute_bar(self):
         print('\nNew minute bar')
-    
+
     def on_bar(self):
         print('\nNew bar')
-        
-
-

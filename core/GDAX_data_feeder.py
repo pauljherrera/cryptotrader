@@ -16,6 +16,10 @@ from core.libraries.gdax_auth import Authentication
 class GDAXWebSocketClient():
 
     def __init__(self,data,channels=[]):
+        """
+            Initialize the client as a Publisher
+        """
+
         self.url = "wss://ws-feed.gdax.com"
 
         self.params = json.dumps(data)
