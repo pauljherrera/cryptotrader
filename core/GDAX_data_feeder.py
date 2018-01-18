@@ -50,6 +50,9 @@ class GDAXWebSocketClient():
         self.listen()
 
     def listen(self):
+        """
+            keeps the connection alive and waiting for every tick
+        """
         while not self.stop:
             try:
                 if int(time.time()%30) == 0:
