@@ -22,7 +22,7 @@ class Trader:
                     product_id='BTC_USD', price=None):
         print('\n{} {} order'.format(product_id, _type))
         print('Type: {}.\nSize: {}.\n'.format(side, size))
-        
+
     def close_last_order(self):
         print('\nLast order closed.\n')
 
@@ -35,8 +35,8 @@ class GDAXTrader(GDAX_Handler, Trader):
                                     product_id=product_id, price=price,
                                     verbose=verbose)
         self.last_order = order
-        
-        
+
+
     def close_last_order(self):
         # Setting parameters.
         if self.order_dict['side'] == 'buy':
@@ -45,65 +45,26 @@ class GDAXTrader(GDAX_Handler, Trader):
             side = 'buy'
         size = self.order_dict['size']
         product_id = self.order_dict['product_id']
-    
+
         # Placing trade.
         order = self.place_order(size=size, side=side, product_id=product_id,
                                  verbose=False)
         self.last_order = order
-        
+
         super().close_last_order()
 
+    def list_accounts(self):
+        balances = super().list_accounts()
+        print(balances)
 
-
-class CoinigyTrader(Subscriber):
-    """
-    Abstract Base Class for trader.
-    """
-    def __init__(self, key, secret, auth_id, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
-        self.pub = Publisher(events=['trades'])
-        self.headers = {'Content-Type': 'application/json',
-                        'X-API-KEY': key,
-                        'X-API-SECRET': secret}
-        self.values = {"auth_id": auth_id,  # exchange accounts
-                       "exch_id": 13,  # Poloniex id
-                       "mkt_id": 1627,  # BTC/USDT id
-                       "order_type_id": 1, # 1 for buy, 2 for sell.
-                       "price_type_id": 6, # 3 for limit, 6 for stop (limit)
-                       "limit_price": 0,
-                       "order_quantity": 0.01}     
-        
-    def trade(self, signal):
-        """
-        Receives a dictionary.
-        """
-        self.values['limit_price'] = signal['price']
-        
-        if signal['type'] == 'BUY':
-            self.values['order_type_id'] = 1
-        elif signal['type'] == 'SELL':
-            self.values['order_type_id'] = 2
-        
-        print(self.values)
-        r = requests.post('https://api.coinigy.com/api/v1/addOrder', 
-                          data=json.dumps(self.values), 
-                          headers=self.headers)
-        print(r.text)
-
-    def update(self, message):
-        thread = threading.Thread(target=self.trade, args=(message,))
-        thread.start()
-    
 if __name__ == '__main__':
     # API keys.
     API_key = 'c2c736241299f78327809504d2ffb0e7'
     passphrase = 'si3b5hm7609'
     secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
-    
+
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
     trader = GDAXTrader(auth=auth)
 
-
-
-
+    trader.list_accounts()

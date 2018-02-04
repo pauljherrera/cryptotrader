@@ -10,12 +10,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.libraries.pub_sub import Subscriber
 from core.libraries.gdax_data_downloader import get_historic_rates
 from core.libraries.resampler import resample_ohlcv
+pd.set_option('expand_frame_repr', False)
 
 class Strategy(Subscriber):
     """
     Abstract class for new strategies.
     Subscribes to a data channel, parses the data and makes a call
-    each tick (on_tick), each minute (on_minute_bar) and 
+    each tick (on_tick), each minute (on_minute_bar) and
     each customized interval (on_bar).
     """
     def __init__(self, trader=None, *args, **kwargs):
@@ -33,7 +34,7 @@ class Strategy(Subscriber):
         self.temp_df = pd.DataFrame(columns=['time','price','size'])
         self.temp_df['time'] = pd.to_datetime(self.temp_df['time'], format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace = True)
-        
+
         self.main_df = self.df_load(60, self.product)
         self.main_df.drop(self.main_df.head(1).index,inplace=True)
         self.timer = dt.datetime.now()
@@ -44,11 +45,11 @@ class Strategy(Subscriber):
 
         # Initializing daemon for getting account balance
         scheduler = BackgroundScheduler()
-        scheduler.add_job(self._scheduled_task, trigger='cron', 
+        scheduler.add_job(self._scheduled_task, trigger='cron',
                           minute='*/{}'.format(self.vstop_timeframe))
-        
+
         scheduler.start()
-                
+
     def _scheduled_task(self):
         self.v_stop_calculate()
         self.on_bar()
@@ -65,7 +66,7 @@ class Strategy(Subscriber):
         hist_df.set_index('time', inplace=True)
         hist_df.sort_index(inplace=True)
         hist_df = hist_df.groupby(hist_df.index).first()
-        
+
         return hist_df
 
     def ATR(self, df):
@@ -81,14 +82,19 @@ class Strategy(Subscriber):
         return df['ATR'].head(1) if df['ATR'].last_valid_index() == None else df['ATR'].loc[df['ATR'].last_valid_index()]
 
     def v_stop_init(self):
-        self.atr_s = self.get_timeframe(self.vstop_timeframe)
+        atr_s = self.get_timeframe(self.vstop_timeframe)
 
         self.vstop['Multiplier'] = self.multiplier
-        self.vstop['Trend'] = "down"
-        self.vstop['ATR'] =  self.atr_s['ATR'][-1]
-        self.vstop['min_price'] = self.atr_s['close'][-1]
-        self.vstop['max_price'] = self.atr_s['close'][-1]
+        self.vstop['Trend'] = self.get_trend(atr_s, 15)
+        self.vstop['ATR'] =  atr_s['ATR'][-1]
+        self.vstop['min_price'] = atr_s['close'][-1]
+        self.vstop['max_price'] = atr_s['close'][-1]
         self.vstop['vstop'] = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
+
+    def get_trend(self, data, period):
+        #period is the init row and -1 the last
+        prices = data['close']
+        return "down" if prices[-1] <= prices[-period] else "up"
 
 
     def v_stop_calculate(self):
@@ -150,21 +156,18 @@ class Strategy(Subscriber):
             self.new_df['volume'] = vol_s
             self.main_df = pd.concat([self.main_df, self.new_df])
             self.on_minute_bar()
-            
+
     def get_timeframe(self, timeframe):
         resampled_df = resample_ohlcv(self.main_df, rule='{}T'.format(timeframe))
         atr_df = self.ATR(resampled_df)
-        
+
         return atr_df
 
     def on_tick(self):
         pass
-        
+
     def on_minute_bar(self):
         print('\nNew minute bar')
-    
+
     def on_bar(self):
         print('\nNew bar')
-        
-
-

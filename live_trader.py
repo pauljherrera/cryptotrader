@@ -1,3 +1,4 @@
+#!/usr/bin/python3.5
 # -*- coding: utf-8 -*-
 """
 Created on Wed Jul 26 20:54:30 2017
@@ -15,11 +16,13 @@ from core.trader import GDAXTrader
 class CustomStrategy(Strategy):
     def on_tick(self):
         pass
-        
+
     def on_minute_bar(self):
         print('\nNew minute bar')
-    
+        print(self.get_timeframe(5))
+
     def on_bar(self):
+
         """
         Main methods you can use.
         self.vstop
@@ -34,7 +37,7 @@ if __name__ == "__main__":
     API_KEY = "c2c736241299f78327809504d2ffb0e7 "
     API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
     API_PASS = "si3b5hm7609"
-    
+
     product = "BTC-USD"
     ATR_period = 14
     timeframe = 60
@@ -52,7 +55,7 @@ if __name__ == "__main__":
     ws = GDAXWebSocketClient(request, [product])
     connectThread = ConnectThread(ws)
     connectThread.setDaemon(False)
-    
+
     # Setting strategy and subscribing to data channels.
     parameters = {
         'pairs': product,
@@ -60,7 +63,7 @@ if __name__ == "__main__":
         'vstop timeframe': timeframe,
         'vstop multiplier': VStop_multiplier,
         'data days': data_days}
-    
+
     strategy = CustomStrategy(**parameters)
     for c in [product]:
     	ws.pub.register(c, strategy)
@@ -68,6 +71,8 @@ if __name__ == "__main__":
     # Setting trader.
     trader = GDAXTrader(auth=auth)
     strategy.trader = trader
+
+    print(trader.list_accounts())
 
     # Start connection.
     connectThread.start()
