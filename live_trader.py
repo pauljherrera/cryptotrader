@@ -74,7 +74,7 @@ if __name__ == "__main__":
     	ws.pub.register(c, strategy)
 
     # Setting trader.
-    trader = GDAXTrader(access_token=access_token, refresh_token=refresh_token)
+    trader = GDAXTrader(auth=auth, access_token=access_token, refresh_token=refresh_token)
     strategy.trader = trader
 
     #Shows data of every wallet
