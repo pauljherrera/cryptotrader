@@ -1,10 +1,11 @@
+#!/usr/bin/python3.5
 # -*- coding: utf-8 -*-
 """
 Created on Wed Nov  1 19:23:23 2017
 
 @author: Paul Herrera
 """
-
+from coinbase.wallet.client import OAuthClient
 import requests
 import json
 import os
@@ -15,7 +16,7 @@ from core.libraries.gdax_auth import Authentication
 
 
 class GDAX_Handler:
-    def __init__(self, auth=None, sandbox=False, *args, **kwargs):
+    def __init__(self, auth=None, sandbox=False, access_token=None, refresh_token=None, *args, **kwargs):
         if sandbox:
             self.url = 'https://api-public.sandbox.gdax.com'
         else:
@@ -27,23 +28,25 @@ class GDAX_Handler:
             "side": "buy",
             "product_id": "BTC-USD"
         }
-        
+        self.access_token = access_token
+        self.refresh_token = refresh_token
+
         self.auth = auth
-                
+
     def get_ticker(self, product_id):
         r = requests.get(self.url + '/products/{}/ticker'.format(product_id))
         if r.status_code == 200:
             return json.loads(r.text)
         else:
             print("Error in response.")
-    
+
     def list_accounts(self):
         r = requests.get(self.url + '/accounts', auth=self.auth)
         if r.status_code == 200:
             return json.loads(r.text)
         else:
             print("Error in response.")
-    
+
     def place_order(self, _type='market', size='0.01', side='buy',
                     product_id='BTC-USD', price=None, verbose=True):
         # Creating trade JSON.
@@ -55,11 +58,11 @@ class GDAX_Handler:
         if _type == 'limit':
             order_dict['price'] = price
             assert(order_dict['price'] != None)
-        
+
         self.order_dict = order_dict
-        
+
         # Placing trade.
-        r = requests.post(self.url + '/orders', data=json.dumps(order_dict), 
+        r = requests.post(self.url + '/orders', data=json.dumps(order_dict),
                           auth=self.auth)
         if r.status_code == 200:
             if verbose:
@@ -69,24 +72,16 @@ class GDAX_Handler:
             print("Error in response.")
             return r
 
+    def get_accounts(self):
+        client = OAuthClient(self.access_token, self.refresh_token)
+        return client.get_accounts()
 
 if __name__ == '__main__':
     # API keys.
     API_key = 'c2c736241299f78327809504d2ffb0e7'
     passphrase = 'si3b5hm7609'
     secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
-    
+
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
     gdax = GDAX_Handler(auth=auth)
-
-    
-    
-        
-    
-        
-    
-        
-    
-
-

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/python3.5
 """
 Created on Thu Aug 10 09:36:39 2017
 
@@ -10,6 +10,7 @@ import json
 import threading
 import sys
 import os
+from coinbase.wallet.client import OAuthClient
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.libraries.pub_sub import Publisher, Subscriber
@@ -54,17 +55,19 @@ class GDAXTrader(GDAX_Handler, Trader):
         super().close_last_order()
 
     def list_accounts(self):
-        balances = super().list_accounts()
-        print(balances)
+        #or return super().list_accounts() if auth from gdax api keys
+        return super().get_accounts()
 
 if __name__ == '__main__':
     # API keys.
-    API_key = 'c2c736241299f78327809504d2ffb0e7'
-    passphrase = 'si3b5hm7609'
-    secret = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    API_key = ''
+    passphrase = ''
+    secret = ''
 
+    access_token =  "1df9662461b596ca098ac8b08cbdc5c328cc0bf1beca81cf2659f3a51cebf00e"
+    refresh_token = "40e687e0fe1dd3e0731187c44c5162dc6c157e4e4c050ef8031b1d21ad7acd06"
     # Instantianting the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
-    trader = GDAXTrader(auth=auth)
+    trader = GDAXTrader(auth=auth, access_token=access_token, refresh_token=refresh_token)
 
-    trader.list_accounts()
+    print(trader.get_accounts())

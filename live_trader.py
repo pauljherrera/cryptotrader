@@ -19,7 +19,9 @@ class CustomStrategy(Strategy):
 
     def on_minute_bar(self):
         print('\nNew minute bar')
+        #could be 5, 10, 15... N minutes
         print(self.get_timeframe(5))
+        #print(self.trader.get_accounts())
 
     def on_bar(self):
 
@@ -34,9 +36,12 @@ class CustomStrategy(Strategy):
 
 if __name__ == "__main__":
 	# User Variables.
-    API_KEY = "c2c736241299f78327809504d2ffb0e7 "
-    API_SECRET = "xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=="
-    API_PASS = "si3b5hm7609"
+    API_KEY = 'c2c736241299f78327809504d2ffb0e7'
+    API_PASS = 'si3b5hm7609'
+    API_SECRET = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+
+    access_token =  "1df9662461b596ca098ac8b08cbdc5c328cc0bf1beca81cf2659f3a51cebf00e"
+    refresh_token = "40e687e0fe1dd3e0731187c44c5162dc6c157e4e4c050ef8031b1d21ad7acd06"
 
     product = "BTC-USD"
     ATR_period = 14
@@ -69,10 +74,13 @@ if __name__ == "__main__":
     	ws.pub.register(c, strategy)
 
     # Setting trader.
-    trader = GDAXTrader(auth=auth)
+    trader = GDAXTrader(access_token=access_token, refresh_token=refresh_token)
     strategy.trader = trader
 
-    print(trader.list_accounts())
+    #Shows data of every wallet
+    data_acc = trader.get_accounts()['data']
+    [print (item['balance'], item['name']) for item in data_acc]
+
 
     # Start connection.
     connectThread.start()
