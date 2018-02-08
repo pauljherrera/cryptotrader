@@ -50,14 +50,10 @@ class GDAX_Handler:
     def place_order(self, _type='market', size='0.01', side='buy',
                     product_id='BTC-USD', price=None, verbose=True):
         # Creating trade JSON.
-        order_dict = {}
-        order_dict['type'] = _type
-        order_dict['size'] = size
-        order_dict['side'] = side
-        order_dict['product_id'] = product_id
+        order_dict = {'type': _type, 'size': size, 'side': side, 'product_id': product_id}
         if _type == 'limit':
             order_dict['price'] = price
-            assert(order_dict['price'] != None)
+            assert (order_dict['price'] is not None)
 
         self.order_dict = order_dict
 
@@ -75,6 +71,7 @@ class GDAX_Handler:
     def get_accounts(self):
         client = OAuthClient(self.access_token, self.refresh_token)
         return client.get_accounts()
+
 
 if __name__ == '__main__':
     # API keys.

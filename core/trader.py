@@ -28,7 +28,6 @@ class Trader:
         print('\nLast order closed.\n')
 
 
-
 class GDAXTrader(GDAX_Handler, Trader):
     def place_order(self, _type='market', size='0.01', side='buy',
                     product_id='BTC-USD', price=None, verbose=True):
@@ -36,7 +35,6 @@ class GDAXTrader(GDAX_Handler, Trader):
                                     product_id=product_id, price=price,
                                     verbose=verbose)
         self.last_order = order
-
 
     def close_last_order(self):
         # Setting parameters.
@@ -55,8 +53,8 @@ class GDAXTrader(GDAX_Handler, Trader):
         super().close_last_order()
 
     def list_accounts(self):
-        return super().list_accounts() #if auth from gdax api keys
-        #return super().get_accounts()
+        return super().list_accounts()  # if auth from gdax api keys
+
 
 if __name__ == '__main__':
     # API keys.
@@ -64,9 +62,10 @@ if __name__ == '__main__':
     passphrase = ''
     secret = ''
 
-    access_token =  "1df9662461b596ca098ac8b08cbdc5c328cc0bf1beca81cf2659f3a51cebf00e"
+    access_token = "1df9662461b596ca098ac8b08cbdc5c328cc0bf1beca81cf2659f3a51cebf00e"
     refresh_token = "40e687e0fe1dd3e0731187c44c5162dc6c157e4e4c050ef8031b1d21ad7acd06"
-    # Instantianting the objects needed.
+
+    # Creating the objects needed.
     auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
     trader = GDAXTrader(auth=auth, access_token=access_token, refresh_token=refresh_token)
 

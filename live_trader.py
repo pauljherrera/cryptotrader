@@ -20,32 +20,32 @@ class CustomStrategy(Strategy):
     def on_minute_bar(self):
         """
         self.get_timeframe(5)
+
         could be 5, 10, 15... N minutes
-        return a dataframe with the timeframe specified
+        returns a dataframe with the timeframe specified
 
         self.trader.list_accounts()
-        returns account balance dict
 
-        """
+        returns the account balance dict
+		"""
         print('\nNew minute bar')
 
     def on_bar(self):
-
         """
         Main methods you can use.
+
         self.vstop
         self.get_timeframe()
         self.trader.place_order()
         self.trader.close_last_order()
-        """
+		"""
 
 
 if __name__ == "__main__":
-	# User Variables.
-    API_KEY = 'API key'
-    API_PASS = 'API passphrase'
-    API_SECRET = 'API secret'
-
+    # User Variables.
+    API_KEY = 'c2c736241299f78327809504d2ffb0e7'
+    API_PASS = 'si3b5hm7609'
+    API_SECRET = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
 
     product = "BTC-USD"
     ATR_period = 14
@@ -53,12 +53,12 @@ if __name__ == "__main__":
     VStop_multiplier = 2
     data_days = 2
 
-    #Authentication
+    # Authentication
     auth = Authentication(API_KEY, API_SECRET, API_PASS)
     request = {"type": "subscribe",
-               "channels": [{"name": "full", "product_ids": [product] }]}
+               "channels": [{"name": "full", "product_ids": [product]}]}
 
-    request.update(auth.get_dict())     #comment this for no auth
+    request.update(auth.get_dict())  # comment this for no auth
 
     # Setting data feeder.
     ws = GDAXWebSocketClient(request, [product])
@@ -75,16 +75,13 @@ if __name__ == "__main__":
 
     strategy = CustomStrategy(**parameters)
     for c in [product]:
-    	ws.pub.register(c, strategy)
+        ws.pub.register(c, strategy)
 
     # Setting trader.
     trader = GDAXTrader(auth=auth)
     strategy.trader = trader
 
-    #Shows data of every wallet
-    #data_acc = trader.get_accounts()['data']
-    #[print (item['balance'], item['name']) for item in data_acc]
-
+    # Shows data of every wallet
     print(trader.list_accounts())
 
     # Start connection.
