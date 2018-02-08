@@ -16,7 +16,7 @@ from core.libraries.gdax_auth import Authentication
 
 
 class GDAX_Handler:
-    def __init__(self, auth=None, sandbox=False, access_token=None, refresh_token=None, *args, **kwargs):
+    def __init__(self, auth=None, sandbox=False, *args, **kwargs):
         if sandbox:
             self.url = 'https://api-public.sandbox.gdax.com'
         else:
@@ -28,8 +28,6 @@ class GDAX_Handler:
             "side": "buy",
             "product_id": "BTC-USD"
         }
-        self.access_token = access_token
-        self.refresh_token = refresh_token
 
         self.auth = auth
 
@@ -42,6 +40,7 @@ class GDAX_Handler:
 
     def list_accounts(self):
         r = requests.get(self.url + '/accounts', auth=self.auth)
+        print(r, r.text)
         if r.status_code == 200:
             return json.loads(r.text)
         else:
@@ -67,10 +66,6 @@ class GDAX_Handler:
         else:
             print("Error in response.")
             return r
-
-    def get_accounts(self):
-        client = OAuthClient(self.access_token, self.refresh_token)
-        return client.get_accounts()
 
 
 if __name__ == '__main__':

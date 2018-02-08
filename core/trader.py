@@ -58,15 +58,12 @@ class GDAXTrader(GDAX_Handler, Trader):
 
 if __name__ == '__main__':
     # API keys.
-    API_key = ''
-    passphrase = ''
-    secret = ''
-
-    access_token = "1df9662461b596ca098ac8b08cbdc5c328cc0bf1beca81cf2659f3a51cebf00e"
-    refresh_token = "40e687e0fe1dd3e0731187c44c5162dc6c157e4e4c050ef8031b1d21ad7acd06"
+    API_KEY = 'c2c736241299f78327809504d2ffb0e7'
+    API_PASS = 'si3b5hm7609'
+    API_SECRET = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
 
     # Creating the objects needed.
-    auth = Authentication(api_key=API_key, secret_key=secret, passphrase=passphrase)
-    trader = GDAXTrader(auth=auth, access_token=access_token, refresh_token=refresh_token)
+    auth = Authentication(api_key=API_KEY, secret_key=API_SECRET, passphrase=API_PASS)
+    trader = GDAXTrader(auth=auth)
 
-    print(trader.get_accounts())
+    print(trader.list_accounts())
