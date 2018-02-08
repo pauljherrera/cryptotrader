@@ -55,8 +55,8 @@ class GDAXTrader(GDAX_Handler, Trader):
         super().close_last_order()
 
     def list_accounts(self):
-        #or return super().list_accounts() if auth from gdax api keys
-        return super().get_accounts()
+        return super().list_accounts() #if auth from gdax api keys
+        #return super().get_accounts()
 
 if __name__ == '__main__':
     # API keys.
