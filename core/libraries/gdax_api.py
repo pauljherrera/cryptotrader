@@ -40,10 +40,10 @@ class GDAX_Handler:
 
     def list_accounts(self):
         r = requests.get(self.url + '/accounts', auth=self.auth)
-        print(r, r.text)
         if r.status_code == 200:
             return json.loads(r.text)
         else:
+            print(r, r.text)
             print("Error in response.")
 
     def place_order(self, _type='market', size='0.01', side='buy',

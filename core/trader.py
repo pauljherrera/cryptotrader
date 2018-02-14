@@ -10,7 +10,7 @@ import json
 import threading
 import sys
 import os
-from coinbase.wallet.client import OAuthClient
+
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from core.libraries.pub_sub import Publisher, Subscriber

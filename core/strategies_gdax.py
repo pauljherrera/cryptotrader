@@ -31,6 +31,7 @@ class Strategy(Subscriber):
 
         self.client = gdax.PublicClient()
         self.trader = trader
+        self.position = None
 
         self.counter = 0
         self.check = True
@@ -84,8 +85,7 @@ class Strategy(Subscriber):
         return df
 
     def atr_value(self, df):
-        return df['ATR'].head(1) if df['ATR'].last_valid_index() else df['ATR'].loc[
-            df['ATR'].last_valid_index()]
+        return df['ATR'].head(1) if df['ATR'].last_valid_index() else df['ATR'].loc[df['ATR'].last_valid_index()]
 
     def v_stop_init(self):
         atr_s = self.get_timeframe(self.vstop_timeframe)
@@ -101,14 +101,16 @@ class Strategy(Subscriber):
         prices = data['close']
         return "down" if prices[-1] <= prices[-period] else "up"  # period is the init row and -1 the last
 
-    #Calculates the vstop and modifies the attribute vstop with values in it
+    # Calculates the vstop and modifies the attribute vstop with values in it
     def v_stop_calculate(self):
         self.atr_s = self.get_timeframe(self.vstop_timeframe)
 
         price = float(self.main_df['close'].tail(1))
         self.vstop['max_price'] = max(self.vstop['max_price'], price)
         self.vstop['min_price'] = min(self.vstop['min_price'], price)
-        self.vstop['ATR'] = self.atr_value(self.atr_s)
+
+        atr_val = self.atr_s['close'][-1]
+        self.vstop['ATR'] = atr_val if atr_val != "NaN" else self.atr_s['close'][-2]
 
         if self.vstop['Trend'] == "up":
             stop = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']

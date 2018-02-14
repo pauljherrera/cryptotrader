@@ -28,6 +28,14 @@ class CustomStrategy(Strategy):
 
         returns the account balance dict
 		"""
+        print('{}: o={}, h={}, l={}, c={}, v={}'.format(
+            self.main_df.index[-1],
+            self.main_df['open'][-1],
+            self.main_df['high'][-1],
+            self.main_df['low'][-1],
+            self.main_df['close'][-1],
+            self.main_df['volume'][-1]))
+
         print('\nNew minute bar')
 
     def on_bar(self):
@@ -43,15 +51,15 @@ class CustomStrategy(Strategy):
 
 if __name__ == "__main__":
     # User Variables.
-    API_KEY = 'c2c736241299f78327809504d2ffb0e7'
-    API_PASS = 'si3b5hm7609'
-    API_SECRET = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    API_KEY = ''
+    API_PASS = ''
+    API_SECRET = ''
 
     product = "BTC-USD"
     ATR_period = 14
-    timeframe = 60
-    VStop_multiplier = 2
-    data_days = 2
+    timeframe = 5
+    VStop_multiplier = 3
+    data_days = 1
 
     # Authentication
     auth = Authentication(API_KEY, API_SECRET, API_PASS)
@@ -82,7 +90,7 @@ if __name__ == "__main__":
     strategy.trader = trader
 
     # Shows data of every wallet
-    print(trader.list_accounts())
+    # print(trader.list_accounts())
 
     # Start connection.
     connectThread.start()
