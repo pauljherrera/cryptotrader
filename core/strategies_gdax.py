@@ -28,6 +28,8 @@ class Strategy(Subscriber):
         self.vstop_timeframe = kwargs['vstop timeframe']
         self.multiplier = kwargs['vstop multiplier']
         self.data_days = kwargs['data days']
+        start_d = kwargs['start']
+        end_d = kwargs['end']
 
         self.client = gdax.PublicClient()
         self.trader = trader
@@ -40,7 +42,7 @@ class Strategy(Subscriber):
                                               format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace=True)
 
-        self.main_df = self.df_load(60, self.product)
+        self.main_df = self.df_load(300, self.product, start=start_d, end=end_d)
         self.main_df.drop(self.main_df.head(1).index, inplace=True)
         self.timer = dt.datetime.now()
         self.main_atr = self.atr(self.main_df)
@@ -60,12 +62,18 @@ class Strategy(Subscriber):
         self.on_bar()
 
     # Returns an historial dataframe
-    def df_load(self, granularity, product):
-        today = dt.date.today()
-        start_date_str = (today - dt.timedelta(days=self.data_days)).isoformat()
-        end_date_str = (today + dt.timedelta(days=1)).isoformat()
+    def df_load(self, granularity, product, start=None, end=None):
+        if start is None and end is None:
+            today = dt.date.today()
+            start_date_str = (today - dt.timedelta(days=self.data_days)).isoformat()
+            end_date_str = (today + dt.timedelta(days=1)).isoformat()
+        else:
+            start_date_str = start
+            end_date_str = end
+
+        print(start_date_str, end_date_str)
         print('\nGetting historical data')
-        hist_df = get_historic_rates(self.client, product='BTC-USD',
+        hist_df = get_historic_rates(self.client, product=product,
                                      start_date=start_date_str, end_date=end_date_str,
                                      granularity=granularity, beautify=False)
         hist_df['time'] = pd.to_datetime(hist_df['time'], unit='s')
