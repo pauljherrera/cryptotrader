@@ -4,80 +4,74 @@ Created on Wed Jul 26 20:54:30 2017
 
 @author: Avanti Financial Services
 """
+from sys import argv
+
+import pandas as pd
 
 from core.strategies_gdax import Strategy
-from core.libraries.websocket_thread import ConnectThread
-from core.GDAX_data_feeder import GDAXWebSocketClient
-from core.libraries.gdax_auth import Authentication
-from core.trader import GDAXTrader
 
 
-class CustomStrategy(Strategy):
-    def on_tick(self):
-        pass
+class Backtester():
 
-    def on_minute_bar(self):
+    def __init__(self, data):
         """
-        self.get_timeframe(5)
-
-        could be 5, 10, 15... N minutes
-        returns a dataframe with the timeframe specified
-
-        self.trader.list_accounts()
-
-        returns the account balance dict
-		"""
-        print('{}: o={}, h={}, l={}, c={}, v={}'.format(
-            self.main_df.index[-1],
-            self.main_df['open'][-1],
-            self.main_df['high'][-1],
-            self.main_df['low'][-1],
-            self.main_df['close'][-1],
-            self.main_df['volume'][-1]))
-
-        print('\nNew minute bar')
-
-    def on_bar(self):
+        :param data: dataframe object that contains
+        open high low close volume TrueRange AvgTR
         """
-        Main methods you can use.
+        self.dataframe = data
 
-        self.vstop
-        self.get_timeframe()
-        self.trader.place_order()
-        self.trader.close_last_order()
-		"""
+    def calculator(self):
+        dataf = self.dataframe
+        for item in dataf.itertuples():
+            open, high, low, close = item[1], item[2], item[3], item[4]
+            volume, true_range, avg_tr = item[5], item[6], item[7]
+
+            if (high+low) / 2 > close:
+                print("buy!")
+            else:
+                print("sell!")
 
 
 if __name__ == "__main__":
     # User Variables.
+    try:
+        new_download = argv[1]
+    except IndexError:
+        new_download = False;
+
     product = "BTC-USD"
     ATR_period = 14
     timeframe = 5
     VStop_multiplier = 3
-    data_days = 1
 
     # Date ranges format: 'YYYY-MM-DD' or None in both cases if using data_days
-    start = '2018-01-29'
-    end = '2018-02-04'
+    start = '2018-01-05'
+    end = '2018-02-15'
 
-    # Setting strategy and subscribing to data channels.
+    # Setting strategy parameters.
     parameters = {
         'pairs': product,
         'ATR-Period': ATR_period,
         'vstop timeframe': timeframe,
         'vstop multiplier': VStop_multiplier,
-        'data days': data_days,
+        'data days': 0,
         'start': start,
-        'end': end}
+        'end': end,
+        'granularity': 5}
 
-    strategy = CustomStrategy(**parameters)
+    if new_download:
+        strategy = Strategy(**parameters)
+        # Getting the dataframe of the desired timeframe
+        dataframe = strategy.main_df
+        dataframe.to_csv("historic_ohlcv.csv")
+    else:
+        dataframe = pd.read_csv("historic_ohlcv.csv")
 
-    df = strategy.get_timeframe(5)
-    print(df)
+    backtester = Backtester(dataframe)
+    backtester.calculator()
 
-    # pd.to_csv(df)
     # Shows data of every wallet
     # print(trader.list_accounts())
 
     # Start connection.
-    #connectThread.start()
+    # connectThread.start()

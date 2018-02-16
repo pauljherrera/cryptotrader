@@ -30,6 +30,7 @@ class Strategy(Subscriber):
         self.data_days = kwargs['data days']
         start_d = kwargs['start']
         end_d = kwargs['end']
+        granularity = kwargs['granularity']
 
         self.client = gdax.PublicClient()
         self.trader = trader
@@ -42,7 +43,7 @@ class Strategy(Subscriber):
                                               format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace=True)
 
-        self.main_df = self.df_load(300, self.product, start=start_d, end=end_d)
+        self.main_df = self.df_load(granularity*60, self.product, start=start_d, end=end_d)
         self.main_df.drop(self.main_df.head(1).index, inplace=True)
         self.timer = dt.datetime.now()
         self.main_atr = self.atr(self.main_df)

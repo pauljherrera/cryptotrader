@@ -79,7 +79,10 @@ if __name__ == "__main__":
         'ATR-Period': ATR_period,
         'vstop timeframe': timeframe,
         'vstop multiplier': VStop_multiplier,
-        'data days': data_days}
+        'data days': data_days,
+        'start': None,
+        'end': None,
+        'granularity': 1}
 
     strategy = CustomStrategy(**parameters)
     for c in [product]:
