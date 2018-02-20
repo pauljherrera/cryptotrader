@@ -11,25 +11,18 @@ import pandas as pd
 from core.strategies_gdax import Strategy
 
 
-class Backtester():
+class BacktesterCustomStrategy(Strategy):
 
-    def __init__(self, data):
-        """
-        :param data: dataframe object that contains
-        open high low close volume TrueRange AvgTR
-        """
-        self.dataframe = data
+    def vstop_strat(self):
+        super().v_stop_calculate()
 
-    def calculator(self):
-        dataf = self.dataframe
         for item in dataf.itertuples():
+            super().v_stop_calculate()
             open, high, low, close = item[1], item[2], item[3], item[4]
             volume, true_range, avg_tr = item[5], item[6], item[7]
 
-            if (high+low) / 2 > close:
-                print("buy!")
-            else:
-                print("sell!")
+
+
 
 
 if __name__ == "__main__":
@@ -59,16 +52,17 @@ if __name__ == "__main__":
         'end': end,
         'granularity': 5}
 
-    if new_download:
-        strategy = Strategy(**parameters)
-        # Getting the dataframe of the desired timeframe
-        dataframe = strategy.main_df
-        dataframe.to_csv("historic_ohlcv.csv")
-    else:
-        dataframe = pd.read_csv("historic_ohlcv.csv")
+    bt_strategy = BacktesterCustomStrategy(backtest=True, **parameters)
 
-    backtester = Backtester(dataframe)
-    backtester.calculator()
+    if new_download:
+        # Getting the dataframe of the desired timeframe
+        dataframe = bt_strategy.main_df
+        dataframe.to_csv("core/historic_ohlcv.csv")
+    else:
+        dataframe = pd.read_csv("core/historic_ohlcv.csv")
+
+    bt_strategy.vstop_strat()
+
 
     # Shows data of every wallet
     # print(trader.list_accounts())

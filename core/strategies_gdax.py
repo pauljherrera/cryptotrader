@@ -22,7 +22,7 @@ class Strategy(Subscriber):
     each customized interval (on_bar).
     """
 
-    def __init__(self, trader=None, *args, **kwargs):
+    def __init__(self, trader=None, backtest=False, *args, **kwargs):
         self.product = kwargs['pairs']
         self.period = kwargs['ATR-Period']
         self.vstop_timeframe = kwargs['vstop timeframe']
@@ -35,20 +35,21 @@ class Strategy(Subscriber):
         self.client = gdax.PublicClient()
         self.trader = trader
         self.position = None
-
+        self.timer = dt.datetime.now()
+        self.check_v = True
+        self.vstop = {}
         self.counter = 0
         self.check = True
         self.temp_df = pd.DataFrame(columns=['time', 'price', 'size'])
         self.temp_df['time'] = pd.to_datetime(self.temp_df['time'],
                                               format="%Y-%m-%dT%H:%M:%S.%fZ")
         self.temp_df = self.temp_df.set_index('time', drop=True, inplace=True)
+        if not backtest:
+            self.main_df = self.df_load(granularity*60, self.product, start=start_d, end=end_d)
+            self.main_df.drop(self.main_df.head(1).index, inplace=True)
+        else:
+            self.main_df = pd.read_csv("core/historic_ohlcv.csv")
 
-        self.main_df = self.df_load(granularity*60, self.product, start=start_d, end=end_d)
-        self.main_df.drop(self.main_df.head(1).index, inplace=True)
-        self.timer = dt.datetime.now()
-        self.main_atr = self.atr(self.main_df)
-        self.check_v = True
-        self.vstop = {}
         self.v_stop_init()
 
         # Initializing daemon for getting account balance
