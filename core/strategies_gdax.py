@@ -49,8 +49,10 @@ class Strategy(Subscriber):
             self.main_df.drop(self.main_df.head(1).index, inplace=True)
         else:
             self.main_df = pd.read_csv("core/historic_ohlcv.csv")
+            self.main_df['time'] = pd.to_datetime(self.main_df['time'])
+            self.main_df.set_index('time', inplace=True, drop=True)
 
-        self.v_stop_init()
+        self.v_stop_init(self.main_df)
 
         # Initializing daemon for getting account balance
         scheduler = BackgroundScheduler()
@@ -60,7 +62,7 @@ class Strategy(Subscriber):
         scheduler.start()
 
     def _scheduled_task(self):
-        self.v_stop_calculate()
+        self.v_stop_calculate(self.main_df)
         self.on_bar()
 
     # Returns an historial dataframe
@@ -84,67 +86,6 @@ class Strategy(Subscriber):
         hist_df = hist_df.groupby(hist_df.index).first()
 
         return hist_df
-
-    def atr(self, df):
-        df['TR1'] = abs(df['high'] - df['low'])
-        df['TR2'] = abs(df['high'] - df['close'].shift())
-        df['TR3'] = abs(df['low'] - df['close'].shift())
-        df['TrueRange'] = df[['TR1', 'TR2', 'TR3']].max(axis=1)
-        df['ATR'] = df.TrueRange.rolling(self.period).mean().ffill()
-        del [df['TR1'], df['TR2'], df['TR3']]
-        return df
-
-    def atr_value(self, df):
-        return df['ATR'].head(1) if df['ATR'].last_valid_index() else df['ATR'].loc[df['ATR'].last_valid_index()]
-
-    def v_stop_init(self):
-        atr_s = self.get_timeframe(self.vstop_timeframe)
-
-        self.vstop['Multiplier'] = self.multiplier
-        self.vstop['Trend'] = self.get_trend(atr_s, 15)
-        self.vstop['ATR'] = atr_s['ATR'][-1]
-        self.vstop['min_price'] = atr_s['close'][-1]
-        self.vstop['max_price'] = atr_s['close'][-1]
-        self.vstop['vstop'] = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
-
-    def get_trend(self, data, period):
-        prices = data['close']
-        return "down" if prices[-1] <= prices[-period] else "up"  # period is the init row and -1 the last
-
-    # Calculates the vstop and modifies the attribute vstop with values in it
-    def v_stop_calculate(self):
-        self.atr_s = self.get_timeframe(self.vstop_timeframe)
-
-        price = float(self.main_df['close'].tail(1))
-        self.vstop['max_price'] = max(self.vstop['max_price'], price)
-        self.vstop['min_price'] = min(self.vstop['min_price'], price)
-
-        atr_val = self.atr_s['close'][-1]
-        self.vstop['ATR'] = atr_val if atr_val != "NaN" else self.atr_s['close'][-2]
-
-        if self.vstop['Trend'] == "up":
-            stop = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
-            self.vstop['vstop'] = max(self.vstop['vstop'], stop)
-        else:
-            stop = self.vstop['min_price'] + self.multiplier * self.vstop['ATR']
-            self.vstop['vstop'] = min(self.vstop['vstop'], stop)
-
-        trend = "up" if price >= self.vstop['vstop'] else "down"
-        change = (trend != self.vstop['Trend'])
-
-        self.vstop['Trend'] = trend
-        if change:
-            self.vstop['max_price'] = price
-            self.vstop['min_price'] = price
-
-            if trend == 'up':
-                self.vstop['vstop'] = (self.vstop['max_price']
-                                       - self.multiplier
-                                       * self.vstop['ATR'])
-            else:
-                self.vstop['vstop'] = (self.vstop['min_price']
-                                       + self.multiplier
-                                       * self.vstop['ATR'])
 
     def check_time(self, clock):
         if self.check:
@@ -178,9 +119,70 @@ class Strategy(Subscriber):
             self.main_df = pd.concat([self.main_df, self.new_df])
             self.on_minute_bar()
 
+    def atr(self, df):
+        df['TR1'] = abs(df['high'] - df['low'])
+        df['TR2'] = abs(df['high'] - df['close'].shift())
+        df['TR3'] = abs(df['low'] - df['close'].shift())
+        df['TrueRange'] = df[['TR1', 'TR2', 'TR3']].max(axis=1)
+        df['ATR'] = df.TrueRange.rolling(self.period).mean().ffill()
+        del [df['TR1'], df['TR2'], df['TR3']]
+        return df
+
+    def atr_value(self, df):
+        return df['ATR'].head(1) if df['ATR'].last_valid_index() else df['ATR'].loc[df['ATR'].last_valid_index()]
+
+    def v_stop_init(self, dataframe):
+        atr_s = self.get_timeframe(dataframe, self.vstop_timeframe)
+
+        self.vstop['Multiplier'] = self.multiplier
+        self.vstop['Trend'] = self.get_trend(atr_s, 15)
+        self.vstop['ATR'] = atr_s['ATR'][-1]
+        self.vstop['min_price'] = atr_s['close'][-1]
+        self.vstop['max_price'] = atr_s['close'][-1]
+        self.vstop['vstop'] = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
+
+    def get_trend(self, data, period):
+        prices = data['close']
+        return "down" if prices[-1] <= prices[-period] else "up"  # period is the init row and -1 the last
+
+    # Calculates the vstop and modifies the attribute vstop with values in it
+    def v_stop_calculate(self, dataframe):
+        atr_s = self.get_timeframe(dataframe, self.vstop_timeframe)
+
+        price = float(self.main_df['close'].tail(1))
+        self.vstop['max_price'] = max(self.vstop['max_price'], price)
+        self.vstop['min_price'] = min(self.vstop['min_price'], price)
+
+        atr_val = atr_s['close'][-1]
+        self.vstop['ATR'] = atr_val if atr_val != "NaN" else atr_s['close'][-2]
+
+        if self.vstop['Trend'] == "up":
+            stop = self.vstop['max_price'] - self.multiplier * self.vstop['ATR']
+            self.vstop['vstop'] = max(self.vstop['vstop'], stop)
+        else:
+            stop = self.vstop['min_price'] + self.multiplier * self.vstop['ATR']
+            self.vstop['vstop'] = min(self.vstop['vstop'], stop)
+
+        trend = "up" if price >= self.vstop['vstop'] else "down"
+        change = (trend != self.vstop['Trend'])
+
+        self.vstop['Trend'] = trend
+        if change:
+            self.vstop['max_price'] = price
+            self.vstop['min_price'] = price
+
+            if trend == 'up':
+                self.vstop['vstop'] = (self.vstop['max_price']
+                                       - self.multiplier
+                                       * self.vstop['ATR'])
+            else:
+                self.vstop['vstop'] = (self.vstop['min_price']
+                                       + self.multiplier
+                                       * self.vstop['ATR'])
+
     # Returns a dataframe with the timeframe specified and atr values
-    def get_timeframe(self, timeframe):
-        resampled_df = resample_ohlcv(self.main_df, rule='{}T'.format(timeframe))
+    def get_timeframe(self, dataf, timeframe):
+        resampled_df = resample_ohlcv(dataf, rule='{}T'.format(timeframe))
         atr_df = self.atr(resampled_df)
         return atr_df
 
