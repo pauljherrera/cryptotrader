@@ -58,9 +58,9 @@ class GDAXTrader(GDAX_Handler, Trader):
 
 if __name__ == '__main__':
     # API keys.
-    API_KEY = 'c2c736241299f78327809504d2ffb0e7'
-    API_PASS = 'si3b5hm7609'
-    API_SECRET = 'xzYSvcKvfP8Nx1uS+FxK7yWtoSfJplenN0vv9zGywfQcjTqEfqTmvGWsGixSQHCtkh9JdNoncEU1rEL1MXDWkA=='
+    API_KEY = ''
+    API_PASS = ''
+    API_SECRET = ''
 
     # Creating the objects needed.
     auth = Authentication(api_key=API_KEY, secret_key=API_SECRET, passphrase=API_PASS)
